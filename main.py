@@ -115,12 +115,11 @@ def deploy():
         data = request.get_json()
         bytecode = data['bytecode']
         abi = data['abi']
-        # Removed constructor_args from data retrieval as per user request
 
-        address = deploy_contract(bytecode, abi)  # No constructor_args passed
+        address = deploy_contract(bytecode, abi)
         return jsonify({'contract_address': address})
     except Exception as e:
-        print(f"Error during contract deployment in Flask route: {e}")  # Debug print
+        print(f"Error during contract deployment in Flask route: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -162,4 +161,5 @@ def blockdag():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)  # Changed debug to False for deployment
