@@ -1,41 +1,48 @@
 import os, requests
 import json  # Import json for JSONDecodeError
 
-# Hugging Face Inference API endpoint for microsoft/Phi-3-mini-4k-instruct
-# This model is generally available on Hugging Face's free tier.
-HF_API_KEY = os.getenv("HF_API_KEY", "")
-MODEL_URL = "https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct"
+# Google Gemini API endpoint for gemini-1.5-flash
+# This API has a generous free tier for developers.
+# You will need to set the GEMINI_API_KEY environment variable.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")  # Changed API key variable name
+MODEL_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
 
-def _call_api(prompt, model_id="microsoft/Phi-3-mini-4k-instruct"):
+def _call_api(prompt):
     """
-    Calls the Hugging Face Inference API.
+    Calls the Google Gemini API.
     """
     headers = {
         "Content-Type": "application/json",
     }
-    if not HF_API_KEY:
-        return "Error: HF_API_KEY missing. Please set your Hugging Face API key."
-    headers["Authorization"] = f"Bearer {HF_API_KEY}"
+    if not GEMINI_API_KEY:
+        return "Error: GEMINI_API_KEY missing. Please set your Google Gemini API key."
+
+    # Gemini API uses API key directly in the URL query parameter
+    api_url_with_key = f"{MODEL_URL}?key={GEMINI_API_KEY}"
 
     payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 1000,  # Kept increased max_new_tokens for detailed responses
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ],
+        "generationConfig": {
             "temperature": 0.7,
-            "top_p": 0.9,
-        },
-        "options": {
-            "wait_for_model": True  # Useful for initial calls to a new model
+            "topP": 0.9,
+            "maxOutputTokens": 1000  # Max output tokens for Gemini is similar to max_new_tokens
         }
     }
 
     try:
-        resp = requests.post(MODEL_URL, headers=headers, json=payload)
+        resp = requests.post(api_url_with_key, headers=headers, json=payload)
 
         # --- DEBUGGING ADDITION ---
-        print(f"\nDEBUG: Hugging Face API Response Status Code: {resp.status_code}")
-        print(f"DEBUG: Hugging Face API Raw Response Text: {resp.text}\n")
+        print(f"\nDEBUG: Gemini API Response Status Code: {resp.status_code}")
+        print(f"DEBUG: Gemini API Raw Response Text: {resp.text}\n")
         # --- END DEBUGGING ADDING ---
 
         resp.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
@@ -43,20 +50,23 @@ def _call_api(prompt, model_id="microsoft/Phi-3-mini-4k-instruct"):
         try:
             out = resp.json()
         except json.JSONDecodeError as e:
-            return (f"Error decoding JSON response from Hugging Face API: {e}. "
+            return (f"Error decoding JSON response from Gemini API: {e}. "
                     f"Raw response was: '{resp.text}'. This often means the API returned a non-JSON error. "
-                    "Please double-check your API key and request parameters against Hugging Face documentation.")
+                    "Please double-check your API key and request parameters against Gemini API documentation.")
 
-        # Hugging Face API's response structure typically returns a list of dictionaries
-        if isinstance(out, list) and out and 'generated_text' in out[0]:
-            return out[0].get("generated_text", str(out))
+        # Gemini API response structure: out['candidates'][0]['content']['parts'][0]['text']
+        if isinstance(out, dict) and 'candidates' in out and out['candidates']:
+            first_candidate = out['candidates'][0]
+            if 'content' in first_candidate and 'parts' in first_candidate['content'] and first_candidate['content'][
+                'parts']:
+                return first_candidate['content']['parts'][0].get('text', str(out))
 
-        return f"Unexpected API response format from Hugging Face: {str(out)}"
+        return f"Unexpected API response format from Gemini: {str(out)}"
 
     except requests.exceptions.RequestException as e:
-        return (f"Error calling Hugging Face API: {str(e)}. "
+        return (f"Error calling Gemini API: {str(e)}. "
                 f"Please double-check your `MODEL_URL` ({MODEL_URL}), "
-                "API key (`HF_API_KEY`), and consult the official Hugging Face API documentation for exact requirements.")
+                "API key (`GEMINI_API_KEY`), and consult the official Google Gemini API documentation for exact requirements.")
     except Exception as e:
         return f"An unexpected error occurred: {str(e)}"
 
@@ -72,7 +82,7 @@ def explain_contract(code):
     # Full prompt sent to the model
     full_prompt_sent = initial_prompt + code.strip()
 
-    # Call the Hugging Face model
+    # Call the Gemini model
     raw_output = _call_api(full_prompt_sent)
 
     # --- Post-processing logic to remove unwanted parts ---
