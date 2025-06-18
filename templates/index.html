@@ -134,18 +134,6 @@
         box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
-    /* Removed #walletStatus styling as the element is removed */
-    /*
-    #walletStatus {
-        margin-right: 15px;
-        font-size: 0.9em;
-        color: #888;
-    }
-    .light-mode #walletStatus {
-        color: #666;
-    }
-    */
-
     /* Modal specific styles for dark/light mode */
     .modal-content {
       background-color: var(--card-dark);
@@ -219,17 +207,24 @@
         box-shadow: 0 6px 12px rgba(0, 123, 255, 0.3);
     }
 
-    /* Style for the Connect Wallet button when a wallet is connected */
+    /* Removed .connected styles as the button text will no longer change */
+    /*
     #connectWalletBtn.connected {
-        background-color: #28a745; /* Green color for connected state */
+        background-color: #28a745;
         border-color: #28a745;
-        /* Removed cursor: default; to ensure it's still clickable */
     }
     #connectWalletBtn.connected:hover {
-        background-color: #28a745; /* Keep green on hover */
+        background-color: #28a745;
         border-color: #28a745;
-        box-shadow: 0 2px 4px rgba(0,123,255,0.2); /* Less pronounced shadow */
+        box-shadow: 0 2px 4px rgba(0,123,255,0.2);
     }
+    */
+
+    /* Ensure the button is always clickable */
+    #connectWalletBtn {
+        pointer-events: auto !important;
+    }
+
 
     .or-separator {
         display: flex;
@@ -270,7 +265,6 @@
 
 <body class="dark-mode">
   <div class="header-buttons">
-    <!-- Removed <span id="walletStatus">Active Wallet: Not Connected</span> -->
     <button id="connectWalletBtn" class="btn btn-sm btn-outline-light">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
         <path d="M0 3a2 2 0 0 1 2-2h13.5a.5.5 0 0 1 0 1H2a1 1 0 0 0-1 1v8.5a1 1 0 0 0 1 1h12.5a.5.5 0 = 0 1 0 1H2a2 2 0 0 1-2-2z"/>
@@ -429,7 +423,7 @@
       } else {
         connectWalletBtn.classList.add('btn-outline-light');
       }
-      updateConnectWalletButtonStatus(); // Call to update button style based on theme change
+      // No longer calling updateConnectWalletButtonStatus here as it only depends on connection state, not theme
     }
 
     document.getElementById('themeToggle').onclick = () => {
@@ -518,7 +512,7 @@
           localStorage.setItem('backendPrivateKey', privateKey);
           localStorage.setItem('backendNodeUrl', nodeUrl);
           updateWalletRadioButtons(); // Update UI state after connection
-          updateConnectWalletButtonStatus(); // Update the header button
+          // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
           setTimeout(() => walletConnectModal.hide(), 1500);
         } else {
           backendWalletConnectedAddress = null; // Clear if connection fails
@@ -527,7 +521,7 @@
           localStorage.removeItem('backendPrivateKey');
           localStorage.removeItem('backendNodeUrl');
           updateWalletRadioButtons(); // Update UI state after failure
-          updateConnectWalletButtonStatus(); // Update the header button
+          // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
         }
       } catch (error) {
         backendWalletConnectedAddress = null; // Clear on network error
@@ -536,7 +530,7 @@
         localStorage.removeItem('backendPrivateKey');
         localStorage.removeItem('backendNodeUrl');
         updateWalletRadioButtons(); // Update UI state after network error
-        updateConnectWalletButtonStatus(); // Update the header button
+        // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
       } finally {
         connectWalletSpinner.style.display = 'none';
         confirmConnectBtn.disabled = false;
@@ -572,7 +566,7 @@
         web3MetaMask = null; // Clear web3MetaMask instance
       }
       updateWalletRadioButtons(); // Always update UI state after MetaMask internal state changes
-      updateConnectWalletButtonStatus(); // Update the header button
+      // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
     };
 
     // Function to initiate MetaMask connection (on button click)
@@ -664,25 +658,19 @@
         }
     }
 
-    // New function to update the header's Connect Wallet button appearance
+    // Simplified function to update the header's Connect Wallet button appearance
     function updateConnectWalletButtonStatus() {
-        if (backendWalletConnectedAddress || metaMaskConnectedAccount) {
-            connectWalletButtonHeader.textContent = "Wallet Connected";
-            connectWalletButtonHeader.classList.remove('btn-outline-light', 'btn-outline-dark');
-            connectWalletButtonHeader.classList.add('btn-success', 'connected'); // Add 'connected' class for styling
-            // connectWalletButtonHeader.disabled = true; // REMOVED: Keep the button enabled to open modal
+        // Always display "Connect Wallet" text
+        connectWalletButtonHeader.textContent = "Connect Wallet";
+        connectWalletButtonHeader.classList.remove('btn-success', 'connected'); // Remove connected styles
+        // Re-apply correct outline color based on current theme
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        if (currentTheme === 'light') {
+            connectWalletButtonHeader.classList.add('btn-outline-dark');
         } else {
-            connectWalletButtonHeader.textContent = "Connect Wallet";
-            connectWalletButtonHeader.classList.remove('btn-success', 'connected');
-            // Re-apply correct outline color based on current theme
-            const currentTheme = localStorage.getItem('theme') || 'dark';
-            if (currentTheme === 'light') {
-                connectWalletButtonHeader.classList.add('btn-outline-dark');
-            } else {
-                connectWalletButtonHeader.classList.add('btn-outline-light');
-            }
-            connectWalletButtonHeader.disabled = false; // Ensure button is enabled
+            connectWalletButtonHeader.classList.add('btn-outline-light');
         }
+        connectWalletButtonHeader.disabled = false; // Ensure button is always enabled
     }
 
 
@@ -1194,8 +1182,8 @@
         // Then initialize MetaMask state
         await initMetaMaskState();
 
-        // Finally, update the header button to reflect the combined state
-        updateConnectWalletButtonStatus();
+        // No need to call updateConnectWalletButtonStatus here anymore as it always shows "Connect Wallet"
+        // and its appearance is set by default
     };
 
   </script>
