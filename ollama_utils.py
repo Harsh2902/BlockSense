@@ -1,13 +1,13 @@
 import os, requests
 import json  # Import json for JSONDecodeError
 
-# Hugging Face Inference API endpoint for deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
-# You will need to set the HF_API_KEY environment variable.
-HF_API_KEY = os.getenv("HF_API_KEY", "")  # Changed back to HF_API_KEY
-MODEL_URL = "https://api-inference.huggingface.co/models/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
+# Hugging Face Inference API endpoint for microsoft/Phi-3-mini-4k-instruct
+# This model is generally available on Hugging Face's free tier.
+HF_API_KEY = os.getenv("HF_API_KEY", "")
+MODEL_URL = "https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct"
 
 
-def _call_api(prompt, model_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"):  # Renamed model param for clarity
+def _call_api(prompt, model_id="microsoft/Phi-3-mini-4k-instruct"):
     """
     Calls the Hugging Face Inference API.
     """
@@ -16,15 +16,14 @@ def _call_api(prompt, model_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"):  # R
     }
     if not HF_API_KEY:
         return "Error: HF_API_KEY missing. Please set your Hugging Face API key."
-    headers["Authorization"] = f"Bearer {HF_API_KEY}"  # Ensure API key is correctly passed for HF
+    headers["Authorization"] = f"Bearer {HF_API_KEY}"
 
     payload = {
-        "inputs": prompt,  # Changed back to 'inputs' for Hugging Face API
+        "inputs": prompt,
         "parameters": {
-            "max_new_tokens": 1000,  # Increased max_new_tokens for more detailed responses
+            "max_new_tokens": 1000,  # Kept increased max_new_tokens for detailed responses
             "temperature": 0.7,
             "top_p": 0.9,
-            # Removed other Featherless-specific parameters not typically used in basic HF inference API
         },
         "options": {
             "wait_for_model": True  # Useful for initial calls to a new model
@@ -37,7 +36,7 @@ def _call_api(prompt, model_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"):  # R
         # --- DEBUGGING ADDITION ---
         print(f"\nDEBUG: Hugging Face API Response Status Code: {resp.status_code}")
         print(f"DEBUG: Hugging Face API Raw Response Text: {resp.text}\n")
-        # --- END DEBUGGING ADDITION ---
+        # --- END DEBUGGING ADDING ---
 
         resp.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
 
@@ -52,7 +51,7 @@ def _call_api(prompt, model_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"):  # R
         if isinstance(out, list) and out and 'generated_text' in out[0]:
             return out[0].get("generated_text", str(out))
 
-        return f"Unexpected API response format from Hugging Face: {str(out)}"  # If parsing fails
+        return f"Unexpected API response format from Hugging Face: {str(out)}"
 
     except requests.exceptions.RequestException as e:
         return (f"Error calling Hugging Face API: {str(e)}. "
