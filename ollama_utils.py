@@ -16,9 +16,16 @@ def _call_hf(prompt):
     return out[0].get("generated_text", str(out))
 
 def explain_contract(code):
-    prompt = f"Explain this Solidity code concisely:\n\n{code}"
+    prompt = (
+        "You are a Solidity expert. Provide a concise explanation of the following smart contract code. "
+        "Do not repeat the question. Just give the explanation directly:\n\n"
+        f"{code.strip()}"
+    )
     return _call_hf(prompt)
 
 def chat_evm(user_input):
-    prompt = f"You are an EVM assistant. {user_input}"
+    prompt = (
+        "You are an EVM assistant. Respond directly to the following request without repeating the question:\n\n"
+        f"{user_input.strip()}"
+    )
     return _call_hf(prompt)
