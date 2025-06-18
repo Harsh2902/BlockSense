@@ -6,10 +6,9 @@ import os  # Import os to access environment variables
 # on your hosting platform (e.g., Render). DO NOT hardcode it here.
 HF_API_TOKEN = os.getenv("HF_API_TOKEN", "")  # Fetch from environment, default to empty string if not found
 
-# Hugging Face Inference API endpoint for a generally accessible generative model.
-# Changed to 'gpt2' as 'google/gemma-2b-it' and 'google/gemma-2-2b-it' caused 404 errors,
-# indicating they might not be publicly available via the standard Inference API.
-HF_INFERENCE_API_URL = "https://api-inference.huggingface.co/models/gpt2"
+# Hugging Face Inference API endpoint for the instruction-tuned Gemma 2B model
+# Updated to google/gemma-2-2b-it as requested
+HF_INFERENCE_API_URL = "https://api-inference.huggingface.co/models/google/gemma-2-2b-it"
 
 
 def _call_huggingface_api(messages: list) -> str:
@@ -22,8 +21,10 @@ def _call_huggingface_api(messages: list) -> str:
         "Content-Type": "application/json"
     }
 
-    # For general generative models like GPT-2, the API expects a single string prompt.
-    # We'll concatenate the messages into a single prompt string.
+    # For instruction-tuned models like Gemma-2-2B-IT, it's often best to follow
+    # a specific turn-based format. We'll concatenate the messages.
+    # The model expects a simple string input for text generation.
+
     final_prompt = ""
     system_message = ""
     user_message = ""
@@ -34,20 +35,19 @@ def _call_huggingface_api(messages: list) -> str:
         elif message["role"] == "user":
             user_message = message["content"]
 
-    # Structure the prompt for a general generative model.
-    # You might need to refine this prompt engineering based on the specific model's fine-tuning.
+    # Construct the prompt according to common instruction-tuned model formats.
+    # This might need further refinement based on specific model fine-tuning if results are unexpected.
     if system_message:
-        final_prompt = f"System instruction: {system_message}\nUser query: {user_message}\nAI Response:"
+        final_prompt = f"System: {system_message}\nUser: {user_message}\n"
     else:
-        final_prompt = f"User query: {user_message}\nAI Response:"
+        final_prompt = f"User: {user_message}\n"
 
     payload = {
         "inputs": final_prompt,
         "parameters": {
-            "max_new_tokens": 200,  # Adjust as needed, GPT-2 is smaller
+            "max_new_tokens": 500,  # Adjust as needed
             "temperature": 0.7,
             "do_sample": True,
-            # Removed "return_full_text": False to avoid potential API compatibility issues
         },
         "options": {
             "wait_for_model": True  # Important for free tier to avoid timeouts if model is not active
@@ -63,15 +63,14 @@ def _call_huggingface_api(messages: list) -> str:
         # with 'generated_text' being a common key for the result.
         if isinstance(result, list) and result and result[0].get('generated_text'):
             generated_text = result[0]['generated_text'].strip()
-            # Since return_full_text is removed, we might get the prompt back.
-            # Attempt to strip the prompt from the generated text.
+            # Attempt to strip the prompt from the generated text, as models often echo the input.
             if generated_text.startswith(final_prompt):
                 return generated_text[len(final_prompt):].strip()
             return generated_text
         else:
             return f"No content generated from AI or unexpected response structure: {result}"
     except requests.exceptions.RequestException as e:
-        return f"Error communicating with Hugging Face API: {e}. Ensure the model is available and your HF_API_TOKEN is correct and has sufficient permissions."
+        return f"Error communicating with Hugging Face API: {e}. Ensure the model is available and your HF_API_TOKEN is correct and has sufficient permissions. Model: google/gemma-2-2b-it"
     except json.JSONDecodeError:
         return "Error parsing JSON response from Hugging Face API."
     except Exception as e:
@@ -80,7 +79,7 @@ def _call_huggingface_api(messages: list) -> str:
 
 def explain_contract(code: str) -> str:
     """
-    Explains Solidity contract code using a Hugging Face generative model.
+    Explains Solidity contract code using the Hugging Face google/gemma-2-2b-it model.
     """
     messages = [
         {"role": "system", "content": "You are a smart contract expert. Explain solidity code concisely."},
@@ -91,7 +90,7 @@ def explain_contract(code: str) -> str:
 
 def chat_evm(user_input: str) -> str:
     """
-    Analyzes transactions or generates web3 commands using a Hugging Face generative model.
+    Analyzes transactions or generates web3 commands using the Hugging Face google/gemma-2-2b-it model.
     """
     messages = [
         {"role": "system",
@@ -99,4 +98,3 @@ def chat_evm(user_input: str) -> str:
         {"role": "user", "content": user_input}
     ]
     return _call_huggingface_api(messages)
-
