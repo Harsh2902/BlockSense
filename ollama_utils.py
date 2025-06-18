@@ -21,7 +21,7 @@ def _call_api(prompt, model_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"):  # R
     payload = {
         "inputs": prompt,  # Changed back to 'inputs' for Hugging Face API
         "parameters": {
-            "max_new_tokens": 300,  # Common parameter for Hugging Face inference
+            "max_new_tokens": 1000,  # Increased max_new_tokens for more detailed responses
             "temperature": 0.7,
             "top_p": 0.9,
             # Removed other Featherless-specific parameters not typically used in basic HF inference API
