@@ -1,19 +1,57 @@
 import os, requests
 
-HF_API_KEY = os.getenv("HF_API_KEY", "")
-MODEL_URL = "https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct"
+# Featherless AI endpoint for deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
+# Note: You might need to provide an API key specific to Featherless AI if required.
+# Assuming API key is handled by the platform or is not strictly necessary for this endpoint.
+# If an API key is needed, it would typically be passed in the headers or body.
+# For now, let's keep HF_API_KEY for consistency in environment variable handling,
+# but note that Featherless AI might use a different key name or system.
+FEATHERLESS_API_KEY = os.getenv("FEATHERLESS_API_KEY", "") # Renamed for clarity
+MODEL_URL = "https://featherless.ai/api/v1/infer"
 
-def _call_hf(prompt):
-    if not HF_API_KEY:
-        return "Error: HF_API_KEY missing."
-    resp = requests.post(MODEL_URL,
-        headers={"Authorization": f"Bearer {HF_API_KEY}"},
-        json={"inputs": prompt, "parameters": {"max_new_tokens":300}})
-    if resp.status_code == 404:
-        return "Model not available via text API."
-    resp.raise_for_status()
-    out = resp.json()
-    return out[0].get("generated_text", str(out))
+def _call_api(prompt, model="deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"):
+    """
+    Calls the Featherless AI inference API.
+    """
+    headers = {
+        "Content-Type": "application/json",
+    }
+    if FEATHERLESS_API_KEY:
+        headers["Authorization"] = f"Bearer {FEATHERLESS_API_KEY}"
+
+    payload = {
+        "model": model,
+        "input": prompt,
+        # Featherless AI might have specific parameters like max_tokens, temperature etc.
+        # You may need to consult their API documentation for exact parameter names.
+        "parameters": {
+            "max_new_tokens": 300,
+            "do_sample": True,
+            "temperature": 0.7,
+            "top_p": 0.9
+        }
+    }
+
+    try:
+        resp = requests.post(MODEL_URL, headers=headers, json=payload)
+        resp.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+        out = resp.json()
+
+        # Featherless AI's response structure might differ from Hugging Face.
+        # Assuming a common structure where the generated text is under 'generated_text' or similar.
+        # You may need to adjust this parsing based on actual Featherless AI response format.
+        if isinstance(out, list) and out and 'generated_text' in out[0]:
+            return out[0].get("generated_text", str(out))
+        elif isinstance(out, dict) and 'generated_text' in out:
+            return out.get("generated_text", str(out))
+        elif isinstance(out, dict) and 'output' in out: # Common alternative for some APIs
+            return out.get("output", str(out))
+        else:
+            return f"Unexpected API response format: {str(out)}"
+    except requests.exceptions.RequestException as e:
+        return f"Error calling Featherless AI API: {str(e)}. Please check your network, API key, and the API documentation."
+    except Exception as e:
+        return f"An unexpected error occurred: {str(e)}"
 
 def explain_contract(code):
     # The original prompt string
@@ -25,8 +63,8 @@ def explain_contract(code):
     # Full prompt sent to the model
     full_prompt_sent = initial_prompt + code.strip()
 
-    # Call the Hugging Face model
-    raw_output = _call_hf(full_prompt_sent)
+    # Call the Featherless AI model
+    raw_output = _call_api(full_prompt_sent)
 
     # --- Post-processing logic to remove unwanted parts ---
 
@@ -53,4 +91,4 @@ def chat_evm(user_input):
         "You are an EVM assistant. Respond directly to the following request without repeating the question:\n\n"
         f"{user_input.strip()}"
     )
-    return _call_hf(prompt)
+    return _call_api(prompt)
