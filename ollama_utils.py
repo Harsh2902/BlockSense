@@ -1,64 +1,46 @@
-import json
-import requests
 import os
+import requests
 
-API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+HF_API_KEY = os.getenv("HF_API_KEY", "")
+HF_MODEL_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
 
-def _call_gemini_api(messages: list) -> str:
-    if not API_KEY:
-        return "Error: Gemini API key not found. Please set the GEMINI_API_KEY environment variable on your hosting platform."
+def _call_huggingface(prompt: str) -> str:
+    if not HF_API_KEY:
+        return "Error: Hugging Face API key not found. Please set HF_API_KEY as an environment variable."
 
     headers = {
-        'Content-Type': 'application/json'
+        "Authorization": f"Bearer {HF_API_KEY}",
+        "Content-Type": "application/json"
     }
-    params = {
-        'key': API_KEY
-    }
-
-    # Convert chat-style messages to Gemini API format
-    formatted_messages = []
-    for msg in messages:
-        if msg["role"] == "system":
-            # Gemini API doesn't support "system" role; can prepend it to user message or skip
-            formatted_messages.insert(0, {
-                "parts": [{"text": msg["content"]}]
-            })
-        elif msg["role"] == "user":
-            formatted_messages.append({
-                "parts": [{"text": msg["content"]}]
-            })
 
     payload = {
-        'contents': formatted_messages
+        "inputs": prompt,
+        "parameters": {
+            "max_new_tokens": 300,
+            "temperature": 0.7,
+            "return_full_text": False
+        }
     }
 
     try:
-        response = requests.post(GEMINI_API_URL, headers=headers, params=params, json=payload)
+        response = requests.post(HF_MODEL_URL, headers=headers, json=payload)
         response.raise_for_status()
         result = response.json()
 
-        if result.get('candidates') and result['candidates'][0].get('content') and result['candidates'][0]['content'].get('parts'):
-            return result['candidates'][0]['content']['parts'][0]['text']
+        # The response is usually a list with one dict containing 'generated_text'
+        if isinstance(result, list) and "generated_text" in result[0]:
+            return result[0]["generated_text"]
         else:
-            return f"No content generated or unexpected response: {result}"
+            return f"Unexpected Hugging Face response: {result}"
     except requests.exceptions.RequestException as e:
-        return f"Error communicating with Gemini API: {e}. Ensure the API is enabled and billing is set."
-    except json.JSONDecodeError:
-        return "Error parsing JSON response."
+        return f"Error communicating with Hugging Face API: {e}"
     except Exception as e:
-        return f"Unexpected error during Gemini API call: {e}"
+        return f"Unexpected error: {e}"
 
 def explain_contract(code: str) -> str:
-    messages = [
-        {"role": "system", "content": "You are a smart contract expert. Explain solidity code concisely."},
-        {"role": "user", "content": code}
-    ]
-    return _call_gemini_api(messages)
+    prompt = f"You are a smart contract expert. Explain the following Solidity code concisely:\n\n{code}"
+    return _call_huggingface(prompt)
 
 def chat_evm(user_input: str) -> str:
-    messages = [
-        {"role": "system", "content": "You are an EVM chatbot. You can analyze transactions or generate web3 commands, and answer general questions about EVM and blockchain. Be concise and helpful."},
-        {"role": "user", "content": user_input}
-    ]
-    return _call_gemini_api(messages)
+    prompt = f"You are an EVM chatbot. Answer concisely:\n\n{user_input}"
+    return _call_huggingface(prompt)
