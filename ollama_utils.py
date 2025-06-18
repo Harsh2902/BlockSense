@@ -47,7 +47,7 @@ def _call_huggingface_api(messages: list) -> str:
             "max_new_tokens": 200,  # Adjust as needed, GPT-2 is smaller
             "temperature": 0.7,
             "do_sample": True,
-            "return_full_text": False  # Only return the newly generated text
+            # Removed "return_full_text": False to avoid potential API compatibility issues
         },
         "options": {
             "wait_for_model": True  # Important for free tier to avoid timeouts if model is not active
@@ -63,6 +63,10 @@ def _call_huggingface_api(messages: list) -> str:
         # with 'generated_text' being a common key for the result.
         if isinstance(result, list) and result and result[0].get('generated_text'):
             generated_text = result[0]['generated_text'].strip()
+            # Since return_full_text is removed, we might get the prompt back.
+            # Attempt to strip the prompt from the generated text.
+            if generated_text.startswith(final_prompt):
+                return generated_text[len(final_prompt):].strip()
             return generated_text
         else:
             return f"No content generated from AI or unexpected response structure: {result}"
