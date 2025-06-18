@@ -121,6 +121,17 @@
       z-index: 999;
       display: flex;
       gap: 10px;
+      align-items: center; /* Align items vertically */
+    }
+
+    /* Added style for wallet status text */
+    #walletStatus {
+        margin-right: 15px; /* Spacing between status and buttons */
+        font-size: 0.9em;
+        color: #888; /* Default muted color */
+    }
+    .light-mode #walletStatus {
+        color: #666;
     }
 
     /* Modal specific styles for dark/light mode */
@@ -235,6 +246,7 @@
 
 <body class="dark-mode">
   <div class="header-buttons">
+    <span id="walletStatus">Backend Wallet: Not Connected</span> <!-- Un-commented and made visible -->
     <button id="connectWalletBtn" class="btn btn-sm btn-outline-light">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
         <path d="M0 3a2 2 0 0 1 2-2h13.5a.5.5 0 0 1 0 1H2a1 1 0 0 0-1 1v8.5a1 1 0 0 0 1 1h12.5a.5.5 0 = 0 1 0 1H2a2 2 0 0 1-2-2z"/>
@@ -484,8 +496,9 @@
         if (data.status === 'success') {
           backendWalletConnectedAddress = data.address; // Store for later use
           walletConnectMessage.innerHTML = `<div class="text-success">Backend Wallet Connected: ${data.address}</div>`;
-          if (walletStatusSpan) { // Null check added here
+          if (walletStatusSpan) {
             walletStatusSpan.textContent = `Backend Wallet: ${data.address.substring(0, 6)}...${data.address.substring(data.address.length - 4)}`;
+            walletStatusSpan.style.color = '#28a745'; /* Green for success */
           }
           radioBackendWallet.disabled = false; // Enable radio button
           radioBackendWallet.checked = true; // Select backend wallet by default
@@ -494,8 +507,9 @@
         } else {
           backendWalletConnectedAddress = null; // Clear if connection fails
           walletConnectMessage.innerHTML = `<div class="text-danger">Error: ${data.message}</div>`;
-          if (walletStatusSpan) { // Null check added here
-            walletStatusSpan.textContent = `No Backend Wallet Connected`;
+          if (walletStatusSpan) {
+            walletStatusSpan.textContent = `Backend Wallet: Not Connected`;
+            walletStatusSpan.style.color = '#dc3545'; /* Red for error */
           }
           radioBackendWallet.disabled = true; // Keep disabled if connection fails
           radioBackendWallet.parentElement.querySelector('label').textContent = 'Backend (Private Key)';
@@ -503,8 +517,9 @@
       } catch (error) {
         backendWalletConnectedAddress = null; // Clear on network error
         walletConnectMessage.innerHTML = `<div class="text-danger">Network error: ${error.message}</div>`;
-        if (walletStatusSpan) { // Null check added here
-            walletStatusSpan.textContent = `No Backend Wallet Connected`;
+        if (walletStatusSpan) {
+            walletStatusSpan.textContent = `Backend Wallet: Not Connected`;
+            walletStatusSpan.style.color = '#dc3545'; /* Red for error */
         }
         radioBackendWallet.disabled = true; // Keep disabled if connection fails
         radioBackendWallet.parentElement.querySelector('label').textContent = 'Backend (Private Key)';
@@ -677,10 +692,10 @@
         backendWalletConnectedAddress = null;
         privateKeyInput.value = '';
         walletAddressInput.value = '';
-        // Reset node URL input to default or empty if desired, for now let's keep it to allow re-connection easily
-        // nodeUrlInput.value = ''; // Uncomment this if you want to clear the node URL on disconnect
+        nodeUrlInput.value = 'http://127.0.0.1:8545'; // Reset node URL input to Ganache default
         if (walletStatusSpan) {
-            walletStatusSpan.textContent = 'No Backend Wallet Connected';
+            walletStatusSpan.textContent = 'Backend Wallet: Not Connected';
+            walletStatusSpan.style.color = '#dc3545'; /* Red for not connected */
         }
 
 
@@ -1005,7 +1020,7 @@
             }
         } else {
             // Check if backend wallet is actually connected before attempting backend interaction
-            if (isTransaction && !backendWalletConnectedAddress) {
+            if (!backendWalletConnectedAddress) {
                 resultBox.innerHTML = '<div class="alert alert-warning mt-2">No backend wallet connected. Please connect one or switch to MetaMask.</div>';
                 spinner.style.display = 'none';
                 loader.style.display = 'none';
@@ -1073,6 +1088,11 @@
         nodeUrlInput.value = 'http://127.0.0.1:8545';
         // No wallet is connected by default, so update radio buttons to reflect that
         updateWalletRadioButtons();
+        // Initialize wallet status display
+        if (walletStatusSpan) {
+            walletStatusSpan.textContent = 'Backend Wallet: Not Connected';
+            walletStatusSpan.style.color = '#dc3545'; /* Red for not connected */
+        }
     };
 
   </script>
