@@ -207,20 +207,7 @@
         box-shadow: 0 6px 12px rgba(0, 123, 255, 0.3);
     }
 
-    /* Removed .connected styles as the button text will no longer change */
-    /*
-    #connectWalletBtn.connected {
-        background-color: #28a745;
-        border-color: #28a745;
-    }
-    #connectWalletBtn.connected:hover {
-        background-color: #28a745;
-        border-color: #28a745;
-        box-shadow: 0 2px 4px rgba(0,123,255,0.2);
-    }
-    */
-
-    /* Ensure the button is always clickable */
+    /* Ensure the header connect wallet button is always clickable */
     #connectWalletBtn {
         pointer-events: auto !important;
     }
@@ -423,7 +410,6 @@
       } else {
         connectWalletBtn.classList.add('btn-outline-light');
       }
-      // No longer calling updateConnectWalletButtonStatus here as it only depends on connection state, not theme
     }
 
     document.getElementById('themeToggle').onclick = () => {
@@ -512,7 +498,6 @@
           localStorage.setItem('backendPrivateKey', privateKey);
           localStorage.setItem('backendNodeUrl', nodeUrl);
           updateWalletRadioButtons(); // Update UI state after connection
-          // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
           setTimeout(() => walletConnectModal.hide(), 1500);
         } else {
           backendWalletConnectedAddress = null; // Clear if connection fails
@@ -521,7 +506,6 @@
           localStorage.removeItem('backendPrivateKey');
           localStorage.removeItem('backendNodeUrl');
           updateWalletRadioButtons(); // Update UI state after failure
-          // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
         }
       } catch (error) {
         backendWalletConnectedAddress = null; // Clear on network error
@@ -530,7 +514,6 @@
         localStorage.removeItem('backendPrivateKey');
         localStorage.removeItem('backendNodeUrl');
         updateWalletRadioButtons(); // Update UI state after network error
-        // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
       } finally {
         connectWalletSpinner.style.display = 'none';
         confirmConnectBtn.disabled = false;
@@ -566,7 +549,6 @@
         web3MetaMask = null; // Clear web3MetaMask instance
       }
       updateWalletRadioButtons(); // Always update UI state after MetaMask internal state changes
-      // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
     };
 
     // Function to initiate MetaMask connection (on button click)
@@ -658,19 +640,10 @@
         }
     }
 
-    // Simplified function to update the header's Connect Wallet button appearance
+    // This function is now empty as the header button behavior is fixed
+    // and doesn't change text or style based on connection.
     function updateConnectWalletButtonStatus() {
-        // Always display "Connect Wallet" text
-        connectWalletButtonHeader.textContent = "Connect Wallet";
-        connectWalletButtonHeader.classList.remove('btn-success', 'connected'); // Remove connected styles
-        // Re-apply correct outline color based on current theme
-        const currentTheme = localStorage.getItem('theme') || 'dark';
-        if (currentTheme === 'light') {
-            connectWalletButtonHeader.classList.add('btn-outline-dark');
-        } else {
-            connectWalletButtonHeader.classList.add('btn-outline-light');
-        }
-        connectWalletButtonHeader.disabled = false; // Ensure button is always enabled
+        // No action needed here as per new requirements.
     }
 
 
@@ -714,7 +687,7 @@
         }
 
         updateWalletRadioButtons(); // Re-evaluate states after disconnect (for modal radio buttons)
-        updateConnectWalletButtonStatus(); // Update the header button
+        // updateConnectWalletButtonStatus(); // Not needed as header button is static
         walletConnectModal.hide(); // Close the modal
     };
 
