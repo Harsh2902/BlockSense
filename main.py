@@ -41,9 +41,15 @@ def set_wallet_config():
         set_current_account(private_key)
         connected_address = get_current_address()
 
+        print(f"DEBUG: Wallet set_wallet_config successful. Node URL: {node_url}, Connected Address: {connected_address}")
+        if WEB3_INSTANCE:
+            print(f"DEBUG: WEB3_INSTANCE after set_wallet_config: {WEB3_INSTANCE}, Is Connected: {WEB3_INSTANCE.is_connected()}")
+
+
         return jsonify(
             {'status': 'success', 'message': 'Wallet configured successfully.', 'address': connected_address})
     except Exception as e:
+        print(f"DEBUG: Error in set_wallet_config: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
@@ -52,10 +58,12 @@ def clear_wallet_config():
     """Clears the wallet configuration from the backend."""
     try:
         clear_current_account()
+        print("DEBUG: Wallet configuration cleared.")
         # Optionally reset node URL to default if desired, or leave it as last set
         # set_node_url("http://127.0.0.1:8545") # Uncomment to reset to Ganache default
         return jsonify({'status': 'success', 'message': 'Wallet configuration cleared.'})
     except Exception as e:
+        print(f"DEBUG: Error in clear_wallet_config: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
@@ -67,6 +75,7 @@ def explain():
         explanation = explain_contract(contract_code)
         return jsonify({'explanation': explanation})
     except Exception as e:
+        print(f"DEBUG: Error in /explain: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -84,13 +93,29 @@ def chat():
 
         if balance_match:
             address = balance_match.group(1)
+            # --- DEBUGGING START ---
+            print(f"\nDEBUG: Processing 'check balance of' for {address}")
+            print(f"DEBUG: WEB3_INSTANCE in balance_match: {WEB3_INSTANCE}")
+            if WEB3_INSTANCE:
+                print(f"DEBUG: WEB3_INSTANCE.is_connected() for balance_match: {WEB3_INSTANCE.is_connected()}")
+            else:
+                print("DEBUG: WEB3_INSTANCE is None for balance_match.")
+            # --- DEBUGGING END ---
             balance = get_balance(address)
-            return jsonify({'response': f"Balance of {address}: {balance}"})
+            return jsonify({'response': f"Backend: Balance of {address}: {balance}"})
         elif my_balance_match:
             current_address = get_current_address()
             if current_address:
+                # --- DEBUGGING START ---
+                print(f"\nDEBUG: Processing 'my balance' for {current_address}")
+                print(f"DEBUG: WEB3_INSTANCE in my_balance_match: {WEB3_INSTANCE}")
+                if WEB3_INSTANCE:
+                    print(f"DEBUG: WEB3_INSTANCE.is_connected() for my_balance_match: {WEB3_INSTANCE.is_connected()}")
+                else:
+                    print("DEBUG: WEB3_INSTANCE is None for my_balance_match.")
+                # --- DEBUGGING END ---
                 balance = get_balance(current_address)
-                return jsonify({'response': f"Balance of your connected backend wallet ({current_address}): {balance}"})
+                return jsonify({'response': f"Backend: Balance of your connected backend wallet ({current_address}): {balance}"})
             else:
                 return jsonify({
                                    'response': "No private key wallet connected to backend. Please connect your private key wallet to check its balance."})
@@ -98,17 +123,31 @@ def chat():
             amount = float(send_eth_match.group(1))
             to_address = send_eth_match.group(2)
             try:
+                # --- DEBUGGING START ---
+                print(f"\nDEBUG: Processing 'transfer' for amount={amount}, to={to_address}")
+                print(f"DEBUG: WEB3_INSTANCE in send_eth_match (before connection check): {WEB3_INSTANCE}")
+                if WEB3_INSTANCE:
+                    print(f"DEBUG: WEB3_INSTANCE.is_connected() for send_eth_match (before connection check): {WEB3_INSTANCE.is_connected()}")
+                else:
+                    print("DEBUG: WEB3_INSTANCE is None for send_eth_match.")
+                # --- DEBUGGING END ---
+
                 # IMPORTANT: Check if WEB3_INSTANCE is initialized and connected
                 if not WEB3_INSTANCE or not WEB3_INSTANCE.is_connected():
+                    print("DEBUG: Transfer attempt: WEB3_INSTANCE is NOT connected, returning error to frontend.")
                     return jsonify({'response': 'Backend EVM node is not connected. Please connect a wallet with a valid node URL.'})
 
                 # Convert to checksum address before sending to evm_utils
                 checksum_to_address = WEB3_INSTANCE.to_checksum_address(to_address)
+                print(f"DEBUG: Checksummed address: {checksum_to_address}")
                 result = send_eth(checksum_to_address, amount)
+                print(f"DEBUG: send_eth result: {result}")
                 return jsonify({'response': result})
             except ValueError as ve:
+                print(f"DEBUG: ValueError during transfer: {str(ve)}")
                 return jsonify({'error': f"Invalid Ethereum address: {str(ve)}"})
             except Exception as e:
+                print(f"DEBUG: General Exception during transfer: {str(e)}")
                 return jsonify({'error': str(e)})
         elif check_tx_status_match:
             tx_hash = check_tx_status_match.group(1)
@@ -119,6 +158,7 @@ def chat():
             response = chat_evm(user_input)
             return jsonify({'response': response})
     except Exception as e:
+        print(f"DEBUG: Top-level error in /chat route: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -132,7 +172,7 @@ def deploy():
         address = deploy_contract(bytecode, abi)
         return jsonify({'contract_address': address})
     except Exception as e:
-        print(f"Error during contract deployment in Flask route: {e}")
+        print(f"DEBUG: Error during contract deployment in Flask route: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -161,6 +201,7 @@ def interact():
         result = interact_with_contract(abi, address, method, args)
         return jsonify({'result': result})
     except Exception as e:
+        print(f"DEBUG: Error during contract interaction in Flask route: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -170,6 +211,7 @@ def blockdag():
         dag_data = get_blockdag_data()
         return jsonify(dag_data)
     except Exception as e:
+        print(f"DEBUG: Error in /blockdag: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
