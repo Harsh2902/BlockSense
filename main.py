@@ -4,7 +4,7 @@ from blockdag import get_blockdag_data
 from evm_utils import (
     send_eth, get_balance, estimate_gas, check_tx_status,
     deploy_contract, interact_with_contract, set_current_account, get_current_address, clear_current_account,
-    set_node_url, WEB3_INSTANCE # Import the new function and the mutable WEB3_INSTANCE
+    set_node_url, get_web3_instance  # Import the new function
 )
 import re, json
 import os
@@ -27,24 +27,29 @@ def set_wallet_config():
     try:
         data = request.get_json()
         private_key = data.get('private_key')
-        node_url = data.get('node_url') # Get the node URL
+        node_url = data.get('node_url')  # Get the node URL
 
         if not private_key:
             return jsonify({'status': 'error', 'message': 'Private key is required.'}), 400
         if not node_url:
             return jsonify({'status': 'error', 'message': 'EVM Node URL is required.'}), 400
 
-        # Set the node URL first. This also initializes WEB3_INSTANCE
+        # Set the node URL first. This also initializes WEB3_INSTANCE internally in evm_utils
         set_node_url(node_url)
 
         # Attempt to set the account in evm_utils
         set_current_account(private_key)
         connected_address = get_current_address()
 
-        print(f"DEBUG: Wallet set_wallet_config successful. Node URL: {node_url}, Connected Address: {connected_address}")
-        if WEB3_INSTANCE:
-            print(f"DEBUG: WEB3_INSTANCE after set_wallet_config: {WEB3_INSTANCE}, Is Connected: {WEB3_INSTANCE.is_connected()}")
-
+        print(
+            f"DEBUG: Wallet set_wallet_config successful. Node URL: {node_url}, Connected Address: {connected_address}")
+        try:
+            # Try to get the instance to print its connection status
+            web3_client_for_debug = get_web3_instance()
+            print(
+                f"DEBUG: WEB3_INSTANCE after set_wallet_config: {web3_client_for_debug}, Is Connected: {web3_client_for_debug.is_connected()}")
+        except Exception as e:
+            print(f"DEBUG: Could not get WEB3_INSTANCE after set_wallet_config: {e}")
 
         return jsonify(
             {'status': 'success', 'message': 'Wallet configured successfully.', 'address': connected_address})
@@ -59,8 +64,6 @@ def clear_wallet_config():
     try:
         clear_current_account()
         print("DEBUG: Wallet configuration cleared.")
-        # Optionally reset node URL to default if desired, or leave it as last set
-        # set_node_url("http://127.0.0.1:8545") # Uncomment to reset to Ganache default
         return jsonify({'status': 'success', 'message': 'Wallet configuration cleared.'})
     except Exception as e:
         print(f"DEBUG: Error in clear_wallet_config: {str(e)}")
@@ -95,11 +98,12 @@ def chat():
             address = balance_match.group(1)
             # --- DEBUGGING START ---
             print(f"\nDEBUG: Processing 'check balance of' for {address}")
-            print(f"DEBUG: WEB3_INSTANCE in balance_match: {WEB3_INSTANCE}")
-            if WEB3_INSTANCE:
-                print(f"DEBUG: WEB3_INSTANCE.is_connected() for balance_match: {WEB3_INSTANCE.is_connected()}")
-            else:
-                print("DEBUG: WEB3_INSTANCE is None for balance_match.")
+            try:
+                web3_client_for_debug = get_web3_instance()
+                print(
+                    f"DEBUG: WEB3_INSTANCE in balance_match: {web3_client_for_debug}, Is Connected: {web3_client_for_debug.is_connected()}")
+            except Exception as e:
+                print(f"DEBUG: Could not get WEB3_INSTANCE for balance_match: {e}")
             # --- DEBUGGING END ---
             balance = get_balance(address)
             return jsonify({'response': f"Backend: Balance of {address}: {balance}"})
@@ -108,41 +112,41 @@ def chat():
             if current_address:
                 # --- DEBUGGING START ---
                 print(f"\nDEBUG: Processing 'my balance' for {current_address}")
-                print(f"DEBUG: WEB3_INSTANCE in my_balance_match: {WEB3_INSTANCE}")
-                if WEB3_INSTANCE:
-                    print(f"DEBUG: WEB3_INSTANCE.is_connected() for my_balance_match: {WEB3_INSTANCE.is_connected()}")
-                else:
-                    print("DEBUG: WEB3_INSTANCE is None for my_balance_match.")
+                try:
+                    web3_client_for_debug = get_web3_instance()
+                    print(
+                        f"DEBUG: WEB3_INSTANCE in my_balance_match: {web3_client_for_debug}, Is Connected: {web3_client_for_debug.is_connected()}")
+                except Exception as e:
+                    print(f"DEBUG: Could not get WEB3_INSTANCE for my_balance_match: {e}")
                 # --- DEBUGGING END ---
                 balance = get_balance(current_address)
-                return jsonify({'response': f"Backend: Balance of your connected backend wallet ({current_address}): {balance}"})
+                return jsonify(
+                    {'response': f"Backend: Balance of your connected backend wallet ({current_address}): {balance}"})
             else:
                 return jsonify({
-                                   'response': "No private key wallet connected to backend. Please connect your private key wallet to check its balance."})
+                    'response': "No private key wallet connected to backend. Please connect your private key wallet to check its balance."})
         elif send_eth_match:
             amount = float(send_eth_match.group(1))
             to_address = send_eth_match.group(2)
             try:
                 # --- DEBUGGING START ---
                 print(f"\nDEBUG: Processing 'transfer' for amount={amount}, to={to_address}")
-                print(f"DEBUG: WEB3_INSTANCE in send_eth_match (before connection check): {WEB3_INSTANCE}")
-                if WEB3_INSTANCE:
-                    print(f"DEBUG: WEB3_INSTANCE.is_connected() for send_eth_match (before connection check): {WEB3_INSTANCE.is_connected()}")
-                else:
-                    print("DEBUG: WEB3_INSTANCE is None for send_eth_match.")
+                # Get the Web3 instance right before using it
+                web3_client = get_web3_instance()
+                print(
+                    f"DEBUG: WEB3_INSTANCE in send_eth_match (after get_web3_instance): {web3_client}, Is Connected: {web3_client.is_connected()}")
                 # --- DEBUGGING END ---
 
-                # IMPORTANT: Check if WEB3_INSTANCE is initialized and connected
-                if not WEB3_INSTANCE or not WEB3_INSTANCE.is_connected():
-                    print("DEBUG: Transfer attempt: WEB3_INSTANCE is NOT connected, returning error to frontend.")
-                    return jsonify({'response': 'Backend EVM node is not connected. Please connect a wallet with a valid node URL.'})
-
                 # Convert to checksum address before sending to evm_utils
-                checksum_to_address = WEB3_INSTANCE.to_checksum_address(to_address)
+                checksum_to_address = web3_client.to_checksum_address(to_address)
                 print(f"DEBUG: Checksummed address: {checksum_to_address}")
                 result = send_eth(checksum_to_address, amount)
                 print(f"DEBUG: send_eth result: {result}")
                 return jsonify({'response': result})
+            except ConnectionError as ce:  # Catch specific connection errors
+                print(f"DEBUG: ConnectionError during transfer: {str(ce)}")
+                return jsonify({
+                                   'response': f"Backend EVM node connection issue: {str(ce)}. Please ensure your node is running and try reconnecting."})
             except ValueError as ve:
                 print(f"DEBUG: ValueError during transfer: {str(ve)}")
                 return jsonify({'error': f"Invalid Ethereum address: {str(ve)}"})
@@ -190,7 +194,8 @@ def interact():
         method_abi_entry = next((item for item in abi if item.get('name') == method and item.get('type') == 'function'),
                                 None)
 
-        if method_abi_entry and method_abi_entry.get('stateMutability') in ['view', 'pure']:# Only require wallet if it's a non-read-only (transaction) method
+        if method_abi_entry and method_abi_entry.get('stateMutability') in ['view',
+                                                                            'pure']:  # Only require wallet if it's a non-read-only (transaction) method
             is_read_only = True
 
         # Only require wallet if it's a non-read-only (transaction) method
