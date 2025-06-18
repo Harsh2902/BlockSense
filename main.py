@@ -1,100 +1,165 @@
-import json
-import requests  # Import requests for making HTTP calls
-import os  # Import os to access environment variables
+from flask import Flask, render_template, request, jsonify
+from ollama_utils import explain_contract, chat_evm
+from blockdag import get_blockdag_data
+from evm_utils import (
+    send_eth, get_balance, estimate_gas, check_tx_status,
+    deploy_contract, interact_with_contract, set_current_account, get_current_address, clear_current_account,
+    WEB3  # Import WEB3 for checksum
+)
+import re, json
+import os
 
-# NOTE: The Hugging Face API token MUST be set as an environment variable
-# on your hosting platform (e.g., Render). DO NOT hardcode it here.
-HF_API_TOKEN = os.getenv("HF_API_TOKEN", "")  # Fetch from environment, default to empty string if not found
-
-# Hugging Face Inference API endpoint for the instruction-tuned Gemma 2B model
-# Updated to google/gemma-2-2b-it as requested
-HF_INFERENCE_API_URL = "https://api-inference.huggingface.co/models/google/gemma-2-2b-it"
+app = Flask(__name__)
 
 
-def _call_huggingface_api(messages: list) -> str:
-    """Internal helper to call the Hugging Face Inference API."""
-    if not HF_API_TOKEN:
-        return "Error: Hugging Face API token not found. Please set the HF_API_TOKEN environment variable."
+@app.route('/', methods=['GET'])
+def index():
+    return render_template('index.html')
 
-    headers = {
-        "Authorization": f"Bearer {HF_API_TOKEN}",
-        "Content-Type": "application/json"
-    }
 
-    # For instruction-tuned models like Gemma-2-2B-IT, it's often best to follow
-    # a specific turn-based format. We'll concatenate the messages.
-    # The model expects a simple string input for text generation.
-
-    final_prompt = ""
-    system_message = ""
-    user_message = ""
-
-    for message in messages:
-        if message["role"] == "system":
-            system_message = message["content"]
-        elif message["role"] == "user":
-            user_message = message["content"]
-
-    # Construct the prompt according to common instruction-tuned model formats.
-    # This might need further refinement based on specific model fine-tuning if results are unexpected.
-    if system_message:
-        final_prompt = f"System: {system_message}\nUser: {user_message}\n"
-    else:
-        final_prompt = f"User: {user_message}\n"
-
-    payload = {
-        "inputs": final_prompt,
-        "parameters": {
-            "max_new_tokens": 500,  # Adjust as needed
-            "temperature": 0.7,
-            "do_sample": True,
-        },
-        "options": {
-            "wait_for_model": True  # Important for free tier to avoid timeouts if model is not active
-        }
-    }
-
+@app.route('/set_wallet_config', methods=['POST'])
+def set_wallet_config():
+    """
+    Sets the wallet configuration (private key) for the backend.
+    WARNING: In a real application, private keys should NEVER be sent to the backend.
+    This is for demonstration purposes only.
+    """
     try:
-        response = requests.post(HF_INFERENCE_API_URL, headers=headers, data=json.dumps(payload))
-        response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-        result = response.json()
+        data = request.get_json()
+        private_key = data.get('private_key')
+        if not private_key:
+            return jsonify({'status': 'error', 'message': 'Private key is required.'}), 400
 
-        # Hugging Face Inference API for text generation usually returns a list of dictionaries,
-        # with 'generated_text' being a common key for the result.
-        if isinstance(result, list) and result and result[0].get('generated_text'):
-            generated_text = result[0]['generated_text'].strip()
-            # Attempt to strip the prompt from the generated text, as models often echo the input.
-            if generated_text.startswith(final_prompt):
-                return generated_text[len(final_prompt):].strip()
-            return generated_text
-        else:
-            return f"No content generated from AI or unexpected response structure: {result}"
-    except requests.exceptions.RequestException as e:
-        return f"Error communicating with Hugging Face API: {e}. Ensure the model is available and your HF_API_TOKEN is correct and has sufficient permissions. Model: google/gemma-2-2b-it"
-    except json.JSONDecodeError:
-        return "Error parsing JSON response from Hugging Face API."
+        # Attempt to set the account in evm_utils
+        set_current_account(private_key)
+        connected_address = get_current_address()
+
+        return jsonify(
+            {'status': 'success', 'message': 'Wallet configured successfully.', 'address': connected_address})
     except Exception as e:
-        return f"An unexpected error occurred during Hugging Face API call: {e}"
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-def explain_contract(code: str) -> str:
-    """
-    Explains Solidity contract code using the Hugging Face google/gemma-2-2b-it model.
-    """
-    messages = [
-        {"role": "system", "content": "You are a smart contract expert. Explain solidity code concisely."},
-        {"role": "user", "content": code}
-    ]
-    return _call_huggingface_api(messages)
+@app.route('/clear_wallet_config', methods=['POST'])
+def clear_wallet_config():
+    """Clears the wallet configuration from the backend."""
+    try:
+        clear_current_account()
+        return jsonify({'status': 'success', 'message': 'Wallet configuration cleared.'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-def chat_evm(user_input: str) -> str:
-    """
-    Analyzes transactions or generates web3 commands using the Hugging Face google/gemma-2-2b-it model.
-    """
-    messages = [
-        {"role": "system",
-         "content": "You are an EVM chatbot. You can analyze transactions or generate web3 commands, and answer general questions about EVM and blockchain. Be concise and helpful."},
-        {"role": "user", "content": user_input}
-    ]
-    return _call_huggingface_api(messages)
+@app.route('/explain', methods=['POST'])
+def explain():
+    try:
+        data = request.get_json()
+        contract_code = data['contract']
+        explanation = explain_contract(contract_code)
+        return jsonify({'explanation': explanation})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    try:
+        data = request.get_json()
+        user_input = data['chat_input']
+
+        # Check for specific commands first
+        balance_match = re.match(r'check balance of (0x[0-9a-fA-F]{40})', user_input, re.IGNORECASE)
+        my_balance_match = re.match(r'^(my\s+)?balance(?:\s*\?)?$', user_input, re.IGNORECASE)
+        send_eth_match = re.match(r'transfer\s+([\d.]+)\s+eth\s+to\s+(0x[0-9a-fA-F]{40})', user_input, re.IGNORECASE)
+        check_tx_status_match = re.match(r'check transaction status of (0x[0-9a-fA-F]{64})', user_input, re.IGNORECASE)
+
+        if balance_match:
+            address = balance_match.group(1)
+            balance = get_balance(address)
+            return jsonify({'response': f"Balance of {address}: {balance}"})
+        elif my_balance_match:
+            current_address = get_current_address()
+            if current_address:
+                balance = get_balance(current_address)
+                return jsonify({'response': f"Balance of your connected backend wallet ({current_address}): {balance}"})
+            else:
+                return jsonify({
+                                   'response': "No private key wallet connected to backend. Please connect your private key wallet to check its balance."})
+        elif send_eth_match:
+            amount = float(send_eth_match.group(1))
+            to_address = send_eth_match.group(2)
+            try:
+                # Convert to checksum address before sending to evm_utils
+                checksum_to_address = WEB3.to_checksum_address(to_address)
+                result = send_eth(checksum_to_address, amount)
+                return jsonify({'response': result})
+            except ValueError as ve:
+                return jsonify({'error': f"Invalid Ethereum address: {str(ve)}"})
+            except Exception as e:
+                return jsonify({'error': str(e)})
+        elif check_tx_status_match:
+            tx_hash = check_tx_status_match.group(1)
+            status = check_tx_status(tx_hash)
+            return jsonify({'response': f"Transaction status for {tx_hash}: {status}"})
+        else:
+            # If no specific command, use LLM for general chat
+            response = chat_evm(user_input)
+            return jsonify({'response': response})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/deploy', methods=['POST'])
+def deploy():
+    try:
+        data = request.get_json()
+        bytecode = data['bytecode']
+        abi = data['abi']
+
+        address = deploy_contract(bytecode, abi)
+        return jsonify({'contract_address': address})
+    except Exception as e:
+        print(f"Error during contract deployment in Flask route: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/interact', methods=['POST'])
+def interact():
+    try:
+        data = request.get_json()
+        abi = data['abi']
+        address = data['contract_address']
+        method = data['method']
+        args = data.get('args', [])
+
+        # Parse ABI to check method's stateMutability
+        is_read_only = False
+        method_abi_entry = next((item for item in abi if item.get('name') == method and item.get('type') == 'function'),
+                                None)
+
+        if method_abi_entry and method_abi_entry.get('stateMutability') in ['view', 'pure']:
+            is_read_only = True
+
+        # Only require wallet if it's a non-read-only (transaction) method
+        if not is_read_only and not get_current_address():
+            return jsonify(
+                {'error': "No wallet connected. Please connect your wallet first for transaction methods."}), 400
+
+        result = interact_with_contract(abi, address, method, args)
+        return jsonify({'result': result})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/blockdag', methods=['GET'])
+def blockdag():
+    try:
+        dag_data = get_blockdag_data()
+        return jsonify(dag_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)  # Changed debug to False for deployment
