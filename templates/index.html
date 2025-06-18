@@ -460,6 +460,7 @@
     // Removed walletStatusSpan as it's no longer needed in the header
 
     connectWalletButtonHeader.onclick = () => { // Event listener for the header button
+      console.log("Connect Wallet button clicked! Disabled state:", connectWalletButtonHeader.disabled); // Added for debugging
       walletConnectMessage.innerHTML = ''; // Clear previous messages
       updateWalletRadioButtons(); // Ensure radio buttons and status are up-to-date
       walletConnectModal.show();
