@@ -34,7 +34,7 @@ def set_wallet_config():
         if not node_url:
             return jsonify({'status': 'error', 'message': 'EVM Node URL is required.'}), 400
 
-        # Set the node URL first
+        # Set the node URL first. This also initializes WEB3_INSTANCE
         set_node_url(node_url)
 
         # Attempt to set the account in evm_utils
@@ -98,6 +98,10 @@ def chat():
             amount = float(send_eth_match.group(1))
             to_address = send_eth_match.group(2)
             try:
+                # IMPORTANT: Check if WEB3_INSTANCE is initialized and connected
+                if not WEB3_INSTANCE or not WEB3_INSTANCE.is_connected():
+                    return jsonify({'response': 'Backend EVM node is not connected. Please connect a wallet with a valid node URL.'})
+
                 # Convert to checksum address before sending to evm_utils
                 checksum_to_address = WEB3_INSTANCE.to_checksum_address(to_address)
                 result = send_eth(checksum_to_address, amount)
