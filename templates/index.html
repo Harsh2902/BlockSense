@@ -605,16 +605,11 @@
         const isMobile = /android|iphone|ipad|ipod|blackberry|windows phone/i.test(userAgent);
 
         if (isMobile) {
-          // Construct the dappUrl carefully for the deep link.
-          // This removes the protocol and any leading/trailing slashes to ensure a clean domain/path for MetaMask.
-          // It explicitly gets hostname and pathname for maximum compatibility.
-          let dappUrl = window.location.hostname + window.location.pathname;
-          // Clean up any double slashes that might result from concatenation
-          dappUrl = dappUrl.replace(/\/\/+/g, '/');
-          // Encode the entire clean URL
-          const metamaskDeepLink = `https://metamask.app.link/dapp/${encodeURIComponent(dappUrl)}`;
+          // CORRECTED DEEP LINK CONSTRUCTION
+          // Use window.location.href directly as it provides the full, unencoded URL
+          const metamaskDeepLink = `https://metamask.app.link/dapp/${window.location.href}`;
 
-          console.log("Attempting MetaMask deep link:", decodeURIComponent(metamaskDeepLink)); // Log for debugging
+          console.log("Attempting MetaMask deep link:", metamaskDeepLink); // Log for debugging
           alert("MetaMask is not detected in this browser. Attempting to open in MetaMask mobile app...");
           window.open(metamaskDeepLink, '_blank'); // Open in new tab/app
         } else {
@@ -928,9 +923,9 @@
             const gasEstimate = await deployTx.estimateGas({ from: metaMaskConnectedAccount });
 
             const receipt = await deployTx.send({
-                from: metaMaskConnectedAccount,
-                gas: gasEstimate + 50000 // Add a buffer
-            });
+                    from: metaMaskConnectedAccount,
+                    gas: gasEstimate + 50000 // Add a buffer
+                });
             contractAddressOrError = receipt.options.address; // Get deployed address from receipt
             resultBox.innerHTML = `<div class="alert alert-success mt-2">MetaMask Contract Deployed: ${contractAddressOrError}</div>`;
         } else {
