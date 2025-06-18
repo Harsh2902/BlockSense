@@ -21,7 +21,7 @@ def _call_api(prompt, model_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"):  # R
     payload = {
         "inputs": prompt,  # Changed back to 'inputs' for Hugging Face API
         "parameters": {
-            "max_new_tokens": 400,  # Common parameter for Hugging Face inference
+            "max_new_tokens": 300,  # Common parameter for Hugging Face inference
             "temperature": 0.7,
             "top_p": 0.9,
             # Removed other Featherless-specific parameters not typically used in basic HF inference API
@@ -63,9 +63,10 @@ def _call_api(prompt, model_id="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"):  # R
 
 
 def explain_contract(code):
-    # The original prompt string
+    # The updated prompt string to request a line-by-line explanation
     initial_prompt = (
-        "You are a Solidity expert. Provide a concise explanation of the following smart contract code. "
+        "You are a Solidity expert. Provide a detailed, line-by-line explanation of the following smart contract code. "
+        "For each line or distinct code block, explain its purpose and functionality. "
         "Do not repeat the question. Just give the explanation directly:\n\n"
     )
 
