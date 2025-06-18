@@ -503,6 +503,11 @@
           radioBackendWallet.disabled = false; // Enable radio button
           radioBackendWallet.checked = true; // Select backend wallet by default
           radioBackendWallet.parentElement.querySelector('label').textContent = `Backend (${data.address.substring(0, 6)}...)`;
+
+          // Save credentials to localStorage on successful connection
+          localStorage.setItem('backendPrivateKey', privateKey);
+          localStorage.setItem('backendNodeUrl', nodeUrl);
+
           setTimeout(() => walletConnectModal.hide(), 1500);
         } else {
           backendWalletConnectedAddress = null; // Clear if connection fails
@@ -513,6 +518,9 @@
           }
           radioBackendWallet.disabled = true; // Keep disabled if connection fails
           radioBackendWallet.parentElement.querySelector('label').textContent = 'Backend (Private Key)';
+          // Clear localStorage if connection fails
+          localStorage.removeItem('backendPrivateKey');
+          localStorage.removeItem('backendNodeUrl');
         }
       } catch (error) {
         backendWalletConnectedAddress = null; // Clear on network error
@@ -523,6 +531,9 @@
         }
         radioBackendWallet.disabled = true; // Keep disabled if connection fails
         radioBackendWallet.parentElement.querySelector('label').textContent = 'Backend (Private Key)';
+        // Clear localStorage on network error
+        localStorage.removeItem('backendPrivateKey');
+        localStorage.removeItem('backendNodeUrl');
       } finally {
         connectWalletSpinner.style.display = 'none';
         confirmConnectBtn.disabled = false;
@@ -693,6 +704,10 @@
         privateKeyInput.value = '';
         walletAddressInput.value = '';
         nodeUrlInput.value = 'http://127.0.0.1:8545'; // Reset node URL input to Ganache default
+        // Clear credentials from localStorage on disconnect
+        localStorage.removeItem('backendPrivateKey');
+        localStorage.removeItem('backendNodeUrl');
+
         if (walletStatusSpan) {
             walletStatusSpan.textContent = 'Backend Wallet: Not Connected';
             walletStatusSpan.style.color = '#dc3545'; /* Red for not connected */
@@ -1079,20 +1094,99 @@
       }
     }
 
+    // Function to attempt automatic backend wallet reconnection on load
+    async function autoConnectBackendWallet() {
+        const storedPrivateKey = localStorage.getItem('backendPrivateKey');
+        const storedNodeUrl = localStorage.getItem('backendNodeUrl');
+
+        if (storedPrivateKey && storedNodeUrl) {
+            walletConnectMessage.innerHTML = '<div class="text-info">Attempting to reconnect backend wallet automatically...</div>';
+            try {
+                const res = await fetch('/set_wallet_config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ private_key: storedPrivateKey, node_url: storedNodeUrl })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    backendWalletConnectedAddress = data.address;
+                    if (walletStatusSpan) {
+                        walletStatusSpan.textContent = `Backend Wallet: ${data.address.substring(0, 6)}...${data.address.substring(data.address.length - 4)}`;
+                        walletStatusSpan.style.color = '#28a745'; /* Green for success */
+                    }
+                    radioBackendWallet.disabled = false;
+                    // Only check if MetaMask is not already connected
+                    if (!metaMaskConnectedAccount) {
+                        radioBackendWallet.checked = true;
+                    }
+                    radioBackendWallet.parentElement.querySelector('label').textContent = `Backend (${data.address.substring(0, 6)}...)`;
+                    console.log("Backend wallet reconnected automatically.");
+                    walletConnectMessage.innerHTML = '<div class="text-success">Backend wallet reconnected automatically.</div>';
+                } else {
+                    console.error("Auto-reconnection failed:", data.message);
+                    walletConnectMessage.innerHTML = `<div class="text-danger">Auto-reconnection failed: ${data.message}</div>`;
+                    // Clear stored credentials if auto-reconnect fails
+                    localStorage.removeItem('backendPrivateKey');
+                    localStorage.removeItem('backendNodeUrl');
+                    backendWalletConnectedAddress = null; // Ensure state is reset
+                    if (walletStatusSpan) {
+                        walletStatusSpan.textContent = 'Backend Wallet: Not Connected';
+                        walletStatusSpan.style.color = '#dc3545'; /* Red for error */
+                    }
+                }
+            } catch (error) {
+                console.error("Network error during auto-reconnection:", error);
+                walletConnectMessage.innerHTML = `<div class="text-danger">Network error during auto-reconnection: ${error.message}</div>`;
+                // Clear stored credentials on network error
+                localStorage.removeItem('backendPrivateKey');
+                localStorage.removeItem('backendNodeUrl');
+                backendWalletConnectedAddress = null; // Ensure state is reset
+                if (walletStatusSpan) {
+                    walletStatusSpan.textContent = 'Backend Wallet: Not Connected';
+                    walletStatusSpan.style.color = '#dc3545'; /* Red for error */
+                }
+            }
+        }
+        updateWalletRadioButtons(); // Ensure radio buttons reflect current state
+    }
+
+
     window.onload = () => {
         loadBlockDAG();
         // Ensure private key and derived address inputs are empty on load
         privateKeyInput.value = '';
         walletAddressInput.value = '';
-        // Set default node URL to Ganache common address
+        // Set default node URL to Ganache common address, will be overwritten by localStorage if present
         nodeUrlInput.value = 'http://127.0.0.1:8545';
-        // No wallet is connected by default, so update radio buttons to reflect that
-        updateWalletRadioButtons();
-        // Initialize wallet status display
+
+        // Load stored values if any, and set them in the input fields
+        const storedPrivateKey = localStorage.getItem('backendPrivateKey');
+        const storedNodeUrl = localStorage.getItem('backendNodeUrl');
+        if (storedPrivateKey) {
+            privateKeyInput.value = storedPrivateKey;
+            // Attempt to derive address locally for display
+            try {
+                const account = web3.eth.accounts.privateKeyToAccount(storedPrivateKey);
+                walletAddressInput.value = account.address;
+            } catch (e) {
+                console.error("Error deriving address from stored private key:", e);
+                walletAddressInput.value = 'Invalid Stored Key';
+            }
+        }
+        if (storedNodeUrl) {
+            nodeUrlInput.value = storedNodeUrl;
+        }
+
+
+        // Initialize wallet status display and attempt auto-reconnect
         if (walletStatusSpan) {
             walletStatusSpan.textContent = 'Backend Wallet: Not Connected';
             walletStatusSpan.style.color = '#dc3545'; /* Red for not connected */
         }
+        autoConnectBackendWallet(); // Attempt auto-reconnection
+
+        updateWalletRadioButtons(); // Initial update after potential auto-fill
     };
 
   </script>
