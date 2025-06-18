@@ -7,8 +7,8 @@ import os  # Import os to access environment variables
 HF_API_TOKEN = os.getenv("HF_API_TOKEN", "")  # Fetch from environment, default to empty string if not found
 
 # Hugging Face Inference API endpoint for the instruction-tuned Gemma 2B model
-# Updated to google/gemma-2-2b-it as requested
-HF_INFERENCE_API_URL = "https://api-inference.huggingface.co/models/google/gemma-2-2b-it"
+# Updated to google/flan-t5-base as requested
+HF_INFERENCE_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
 
 
 def _call_huggingface_api(messages: list) -> str:
@@ -21,7 +21,7 @@ def _call_huggingface_api(messages: list) -> str:
         "Content-Type": "application/json"
     }
 
-    # For instruction-tuned models like Gemma-2-2B-IT, it's often best to follow
+    # For instruction-tuned models like Flan-T5, it's often best to follow
     # a specific turn-based format. We'll concatenate the messages.
     # The model expects a simple string input for text generation.
 
@@ -70,7 +70,7 @@ def _call_huggingface_api(messages: list) -> str:
         else:
             return f"No content generated from AI or unexpected response structure: {result}"
     except requests.exceptions.RequestException as e:
-        return f"Error communicating with Hugging Face API: {e}. Ensure the model is available and your HF_API_TOKEN is correct and has sufficient permissions. Model: google/gemma-2-2b-it"
+        return f"Error communicating with Hugging Face API: {e}. Ensure the model is available and your HF_API_TOKEN is correct and has sufficient permissions. Model: google/flan-t5-base"
     except json.JSONDecodeError:
         return "Error parsing JSON response from Hugging Face API."
     except Exception as e:
@@ -79,7 +79,7 @@ def _call_huggingface_api(messages: list) -> str:
 
 def explain_contract(code: str) -> str:
     """
-    Explains Solidity contract code using the Hugging Face google/gemma-2-2b-it model.
+    Explains Solidity contract code using the Hugging Face google/flan-t5-base model.
     """
     messages = [
         {"role": "system", "content": "You are a smart contract expert. Explain solidity code concisely."},
@@ -90,7 +90,7 @@ def explain_contract(code: str) -> str:
 
 def chat_evm(user_input: str) -> str:
     """
-    Analyzes transactions or generates web3 commands using the Hugging Face google/gemma-2-2b-it model.
+    Analyzes transactions or generates web3 commands using the Hugging Face google/flan-t5-base model.
     """
     messages = [
         {"role": "system",
