@@ -86,7 +86,7 @@ def explain():
 def chat():
     try:
         data = request.get_json()
-        user_input = data['chat_input']
+        user_input = data['chat_input'].strip()  # <--- Added .strip() here
 
         # Check for specific commands first
         balance_match = re.match(r'check balance of (0x[0-9a-fA-F]{40})', user_input, re.IGNORECASE)
