@@ -1,14 +1,11 @@
 import json
-import requests # Import requests for making HTTP calls
-import os # Import os to access environment variables
+import requests
+import os
 
-# NOTE: For deployment on platforms like Render, the API key needs to be set
-# as an environment variable. DO NOT hardcode your actual API key here.
-API_KEY = os.getenv("GEMINI_API_KEY", "") # Read API key from environment variable named GEMINI_API_KEY
+API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 def _call_gemini_api(messages: list) -> str:
-    """Internal helper to call the Gemini API."""
     if not API_KEY:
         return "Error: Gemini API key not found. Please set the GEMINI_API_KEY environment variable on your hosting platform."
 
@@ -18,32 +15,41 @@ def _call_gemini_api(messages: list) -> str:
     params = {
         'key': API_KEY
     }
+
+    # Convert chat-style messages to Gemini API format
+    formatted_messages = []
+    for msg in messages:
+        if msg["role"] == "system":
+            # Gemini API doesn't support "system" role; can prepend it to user message or skip
+            formatted_messages.insert(0, {
+                "parts": [{"text": msg["content"]}]
+            })
+        elif msg["role"] == "user":
+            formatted_messages.append({
+                "parts": [{"text": msg["content"]}]
+            })
+
     payload = {
-        'contents': messages
+        'contents': formatted_messages
     }
 
     try:
-        response = requests.post(GEMINI_API_URL, headers=headers, params=params, data=json.dumps(payload))
-        response.raise_for_status() # Raise an exception for HTTP errors (4xx or 5xx)
+        response = requests.post(GEMINI_API_URL, headers=headers, params=params, json=payload)
+        response.raise_for_status()
         result = response.json()
 
         if result.get('candidates') and result['candidates'][0].get('content') and result['candidates'][0]['content'].get('parts'):
-            generated_content = result['candidates'][0]['content']['parts'][0]['text']
-            return generated_content
+            return result['candidates'][0]['content']['parts'][0]['text']
         else:
-            return f"No content generated from AI or unexpected response structure: {result}"
+            return f"No content generated or unexpected response: {result}"
     except requests.exceptions.RequestException as e:
-        return f"Error communicating with Gemini API: {e}. Please ensure the Generative Language API is enabled in your Google Cloud Project and your environment has access."
+        return f"Error communicating with Gemini API: {e}. Ensure the API is enabled and billing is set."
     except json.JSONDecodeError:
-        return "Error parsing JSON response from Gemini API."
+        return "Error parsing JSON response."
     except Exception as e:
-        return f"An unexpected error occurred during Gemini API call: {e}"
-
+        return f"Unexpected error during Gemini API call: {e}"
 
 def explain_contract(code: str) -> str:
-    """
-    Explains Solidity contract code using the Gemini AI model.
-    """
     messages = [
         {"role": "system", "content": "You are a smart contract expert. Explain solidity code concisely."},
         {"role": "user", "content": code}
@@ -51,12 +57,8 @@ def explain_contract(code: str) -> str:
     return _call_gemini_api(messages)
 
 def chat_evm(user_input: str) -> str:
-    """
-    Analyzes transactions or generates web3 commands using the Gemini AI model.
-    """
     messages = [
         {"role": "system", "content": "You are an EVM chatbot. You can analyze transactions or generate web3 commands, and answer general questions about EVM and blockchain. Be concise and helpful."},
         {"role": "user", "content": user_input}
     ]
     return _call_gemini_api(messages)
-
