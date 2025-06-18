@@ -4,7 +4,7 @@ from blockdag import get_blockdag_data
 from evm_utils import (
     send_eth, get_balance, estimate_gas, check_tx_status,
     deploy_contract, interact_with_contract, set_current_account, get_current_address, clear_current_account,
-    WEB3  # Import WEB3 for checksum
+    set_node_url, WEB3_INSTANCE # Import the new function and the mutable WEB3_INSTANCE
 )
 import re, json
 import os
@@ -20,15 +20,22 @@ def index():
 @app.route('/set_wallet_config', methods=['POST'])
 def set_wallet_config():
     """
-    Sets the wallet configuration (private key) for the backend.
+    Sets the wallet configuration (private key) and EVM node URL for the backend.
     WARNING: In a real application, private keys should NEVER be sent to the backend.
     This is for demonstration purposes only.
     """
     try:
         data = request.get_json()
         private_key = data.get('private_key')
+        node_url = data.get('node_url') # Get the node URL
+
         if not private_key:
             return jsonify({'status': 'error', 'message': 'Private key is required.'}), 400
+        if not node_url:
+            return jsonify({'status': 'error', 'message': 'EVM Node URL is required.'}), 400
+
+        # Set the node URL first
+        set_node_url(node_url)
 
         # Attempt to set the account in evm_utils
         set_current_account(private_key)
@@ -45,6 +52,8 @@ def clear_wallet_config():
     """Clears the wallet configuration from the backend."""
     try:
         clear_current_account()
+        # Optionally reset node URL to default if desired, or leave it as last set
+        # set_node_url("http://127.0.0.1:8545") # Uncomment to reset to Ganache default
         return jsonify({'status': 'success', 'message': 'Wallet configuration cleared.'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -90,7 +99,7 @@ def chat():
             to_address = send_eth_match.group(2)
             try:
                 # Convert to checksum address before sending to evm_utils
-                checksum_to_address = WEB3.to_checksum_address(to_address)
+                checksum_to_address = WEB3_INSTANCE.to_checksum_address(to_address)
                 result = send_eth(checksum_to_address, amount)
                 return jsonify({'response': result})
             except ValueError as ve:
@@ -137,7 +146,7 @@ def interact():
         method_abi_entry = next((item for item in abi if item.get('name') == method and item.get('type') == 'function'),
                                 None)
 
-        if method_abi_entry and method_abi_entry.get('stateMutability') in ['view', 'pure']:
+        if method_abi_entry and method_abi_entry.get('stateMutability') in ['view', 'pure']:# Only require wallet if it's a non-read-only (transaction) method
             is_read_only = True
 
         # Only require wallet if it's a non-read-only (transaction) method
@@ -162,4 +171,4 @@ def blockdag():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)  # Changed debug to False for deployment
+    app.run(host='0.0.0.0', port=port, debug=False)
