@@ -2,7 +2,6 @@ import os
 from web3 import Web3
 from web3.exceptions import TransactionNotFound, ContractLogicError
 from dotenv import load_dotenv
-import json # Import json for json operations
 
 # Load environment variables (important for local development)
 load_dotenv()
@@ -15,7 +14,7 @@ ACCOUNT = None  # Account will be set dynamically by the user
 
 def get_web3_instance():
     """
-    Returns the global _web3_instance, ensuring it's initialized and connected.
+    Returns the global WEB3_INSTANCE, ensuring it's initialized and connected.
     If not connected, it attempts to re-initialize it using the last known node URL.
     """
     global _web3_instance, _current_node_url
@@ -40,7 +39,7 @@ def get_web3_instance():
 
 def set_node_url(node_url: str):
     """
-    Sets the global node URL and attempts to initialize/re-initialize the _web3_instance.
+    Sets the global node URL and attempts to initialize/re-initialize the WEB3_INSTANCE.
     This allows the application to connect to different EVM nodes dynamically.
     """
     global _current_node_url, _web3_instance
@@ -50,8 +49,6 @@ def set_node_url(node_url: str):
         _web3_instance = Web3(Web3.HTTPProvider(_current_node_url))
         if not _web3_instance.is_connected():
             raise ConnectionError(f"Could not connect to EVM node at {_current_node_url}")
-        # Test connection by fetching the latest block number
-        _web3_instance.eth.get_block_number()
         print(f"DEBUG: Successfully set and connected to EVM node: {_current_node_url}")
     except Exception as e:
         _web3_instance = None  # Ensure it's None if connection fails
@@ -107,7 +104,7 @@ def send_eth(to_address: str, amount_eth: float) -> str:
     if not ACCOUNT:
         raise Exception("No wallet connected. Please connect your wallet to send transactions.")
 
-    # Ensure _web3_instance is connected right before use
+    # Ensure WEB3_INSTANCE is connected right before use
     web3_client = get_web3_instance()
 
     try:
@@ -115,12 +112,11 @@ def send_eth(to_address: str, amount_eth: float) -> str:
         nonce = web3_client.eth.get_transaction_count(ACCOUNT.address)
 
         tx = {
-            'to': web3_client.to_checksum_address(to_address), # Ensure checksum address
+            'to': to_address,
             'value': value_wei,
             'nonce': nonce,
             'gas': 21000,  # Standard gas limit for ETH transfer
-            'gasPrice': web3_client.to_wei('50', 'gwei'),  # Example gas price
-            'chainId': web3_client.eth.chain_id # Add chainId
+            'gasPrice': web3_client.to_wei('50', 'gwei')  # Example gas price
         }
 
         signed_tx = ACCOUNT.sign_transaction(tx)
@@ -142,9 +138,9 @@ def send_eth(to_address: str, amount_eth: float) -> str:
 def get_balance(address: str) -> str:
     """Retrieves the ETH balance of a given address."""
     try:
-        # Ensure _web3_instance is connected right before use
+        # Ensure WEB3_INSTANCE is connected right before use
         web3_client = get_web3_instance()
-        balance_wei = web3_client.eth.get_balance(web3_client.to_checksum_address(address)) # Ensure checksum address
+        balance_wei = web3_client.eth.get_balance(address)
         balance_eth = web3_client.from_wei(balance_wei, 'ether')
         return f"{balance_eth:.4f} ETH"
     except Exception as e:
@@ -155,9 +151,9 @@ def estimate_gas(from_address: str, to_address: str | None = None, value: float 
     """Estimates the gas required for a transaction."""
     try:
         web3_client = get_web3_instance()
-        tx_params = {'from': web3_client.to_checksum_address(from_address)} # Ensure checksum address
+        tx_params = {'from': from_address}
         if to_address:
-            tx_params['to'] = web3_client.to_checksum_address(to_address) # Ensure checksum address
+            tx_params['to'] = to_address
         if value > 0:
             tx_params['value'] = web3_client.to_wei(value, 'ether')
         if data:
@@ -202,8 +198,7 @@ def deploy_contract(bytecode: str, abi: list) -> str:
             'from': ACCOUNT.address,
             'nonce': nonce,
             'gas': gas_estimate + 200000,  # Add a buffer
-            'gasPrice': web3_client.to_wei('50', 'gwei'),  # Example gas price
-            'chainId': web3_client.eth.chain_id # Add chainId
+            'gasPrice': web3_client.to_wei('50', 'gwei')  # Example gas price
         })
 
         signed_tx = ACCOUNT.sign_transaction(tx_dict)
@@ -230,11 +225,12 @@ def interact_with_contract(abi: list, contract_address: str, method: str, args: 
         # Check if the method is a transaction (non-view/pure function)
         is_transaction = False
         for f in abi:
-            if f.get('name') == method and f.get('type') == 'function' and f.get('stateMutability') not in ['view', 'pure']:
+            if f.get('name') == method and f.get('type') == 'function' and f.get('stateMutability') not in ['view',
+                                                                                                            'pure']:
                 is_transaction = True
                 break
 
-        contract = web3_client.eth.contract(address=web3_client.to_checksum_address(contract_address), abi=abi) # Ensure checksum address
+        contract = web3_client.eth.contract(address=contract_address, abi=abi)
         # Use getattr with a default to avoid AttributeError if method not found
         fn = getattr(contract.functions, method, None)
         if fn is None:
@@ -249,8 +245,7 @@ def interact_with_contract(abi: list, contract_address: str, method: str, args: 
                 'from': ACCOUNT.address,
                 'nonce': nonce,
                 'gas': 2000000,  # Reasonable gas limit for interactions
-                'gasPrice': web3_client.to_wei('50', 'gwei'),
-                'chainId': web3_client.eth.chain_id # Add chainId
+                'gasPrice': web3_client.to_wei('50', 'gwei')
             })
             signed_tx = ACCOUNT.sign_transaction(tx_dict)
             tx_hash = web3_client.eth.send_raw_transaction(signed_tx.raw_transaction)
@@ -265,4 +260,3 @@ def interact_with_contract(abi: list, contract_address: str, method: str, args: 
     except Exception as e:
         # Catch all other exceptions during interaction and return a message
         return f"❌ Error interacting with contract: {str(e)}"
-
