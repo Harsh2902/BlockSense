@@ -1,4 +1,5 @@
 import os, requests
+import json  # Import json for JSONDecodeError
 
 # Featherless AI endpoint for deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
 # IMPORTANT: This URL is based on a common LLM API pattern (like OpenAI's chat completions).
@@ -34,8 +35,20 @@ def _call_api(prompt, model="deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"):
 
     try:
         resp = requests.post(MODEL_URL, headers=headers, json=payload)
+
+        # --- DEBUGGING ADDITION ---
+        print(f"\nDEBUG: Featherless AI API Response Status Code: {resp.status_code}")
+        print(f"DEBUG: Featherless AI API Raw Response Text: {resp.text}\n")
+        # --- END DEBUGGING ADDITION ---
+
         resp.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-        out = resp.json()
+
+        try:
+            out = resp.json()
+        except json.JSONDecodeError as e:
+            return (f"Error decoding JSON response from Featherless AI: {e}. "
+                    f"Raw response was: '{resp.text}'. This often means the API returned a non-JSON error or an empty response. "
+                    "Please double-check your API key and request parameters against Featherless AI documentation.")
 
         # Featherless AI's response structure for chat completions should typically follow:
         # out['choices'][0]['message']['content']
@@ -70,7 +83,6 @@ def explain_contract(code):
     raw_output = _call_api(full_prompt_sent)
 
     # --- Post-processing logic to remove unwanted parts ---
-
     # 1. Remove the initial prompt if it's repeated in the output
     if raw_output.startswith(initial_prompt):
         raw_output = raw_output[len(initial_prompt):].strip()
