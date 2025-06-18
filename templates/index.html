@@ -223,7 +223,7 @@
     #connectWalletBtn.connected {
         background-color: #28a745; /* Green color for connected state */
         border-color: #28a745;
-        cursor: default; /* Change cursor to default */
+        /* Removed cursor: default; to ensure it's still clickable */
     }
     #connectWalletBtn.connected:hover {
         background-color: #28a745; /* Keep green on hover */
@@ -669,7 +669,7 @@
             connectWalletButtonHeader.textContent = "Wallet Connected";
             connectWalletButtonHeader.classList.remove('btn-outline-light', 'btn-outline-dark');
             connectWalletButtonHeader.classList.add('btn-success', 'connected'); // Add 'connected' class for styling
-            connectWalletButtonHeader.disabled = true; // Disable the button in the header when connected
+            // connectWalletButtonHeader.disabled = true; // REMOVED: Keep the button enabled to open modal
         } else {
             connectWalletButtonHeader.textContent = "Connect Wallet";
             connectWalletButtonHeader.classList.remove('btn-success', 'connected');
@@ -680,7 +680,7 @@
             } else {
                 connectWalletButtonHeader.classList.add('btn-outline-light');
             }
-            connectWalletButtonHeader.disabled = false; // Enable the button
+            connectWalletButtonHeader.disabled = false; // Ensure button is enabled
         }
     }
 
