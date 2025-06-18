@@ -2,13 +2,16 @@ import json
 import requests # Import requests for making HTTP calls
 import os # Import os to access environment variables
 
-# NOTE: The API key for Gemini is handled by the Canvas environment and should be left as an empty string.
-# DO NOT add any API key validation logic here.
-API_KEY = "" # Leave this empty. Canvas will provide it at runtime.
+# NOTE: For deployment on platforms like Render, the API key needs to be set
+# as an environment variable. DO NOT hardcode your actual API key here.
+API_KEY = os.getenv("GEMINI_API_KEY", "") # Read API key from environment variable named GEMINI_API_KEY
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 def _call_gemini_api(messages: list) -> str:
     """Internal helper to call the Gemini API."""
+    if not API_KEY:
+        return "Error: Gemini API key not found. Please set the GEMINI_API_KEY environment variable on your hosting platform."
+
     headers = {
         'Content-Type': 'application/json'
     }
