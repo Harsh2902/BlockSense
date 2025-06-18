@@ -1,35 +1,24 @@
-import os
-import requests
+import os, requests
 
 HF_API_KEY = os.getenv("HF_API_KEY", "")
-HF_CHAT_URL = "https://api-inference.huggingface.co/v1/chat/completions"
+MODEL_URL = "https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct"
 
-def _call_huggingface_chat(messages: list) -> str:
+def _call_hf(prompt):
     if not HF_API_KEY:
-        return "Error: HF_API_KEY not set."
-    headers = {
-        "Authorization": f"Bearer {HF_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": "microsoft/Phi-3-mini-4k-instruct",
-        "messages": messages
-    }
-    try:
-        resp = requests.post(HF_CHAT_URL, headers=headers, json=payload)
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        return f"Error: {e}"
+        return "Error: HF_API_KEY missing."
+    resp = requests.post(MODEL_URL,
+        headers={"Authorization": f"Bearer {HF_API_KEY}"},
+        json={"inputs": prompt, "parameters": {"max_new_tokens":300}})
+    if resp.status_code == 404:
+        return "Model not available via text API."
+    resp.raise_for_status()
+    out = resp.json()
+    return out[0].get("generated_text", str(out))
 
-def explain_contract(code: str) -> str:
-    return _call_huggingface_chat([
-        {"role": "system", "content": "You are a smart contract expert. Explain Solidity code concisely."},
-        {"role": "user", "content": code}
-    ])
+def explain_contract(code):
+    prompt = f"Explain this Solidity code concisely:\n\n{code}"
+    return _call_hf(prompt)
 
-def chat_evm(user_input: str) -> str:
-    return _call_huggingface_chat([
-        {"role": "system", "content": "You are an EVM chatbot. Be concise and helpful."},
-        {"role": "user", "content": user_input}
-    ])
+def chat_evm(user_input):
+    prompt = f"You are an EVM assistant. {user_input}"
+    return _call_hf(prompt)
