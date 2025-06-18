@@ -20,6 +20,7 @@
       font-family: 'Segoe UI', sans-serif;
       background-color: var(--bg-dark);
       transition: all 0.3s;
+      padding-top: 70px; /* Add padding for the fixed header */
     }
 
     .light-mode {
@@ -122,17 +123,28 @@
       display: flex;
       gap: 10px;
       align-items: center; /* Align items vertically */
+      background-color: var(--bg-dark); /* Ensure background for fixed header */
+      padding: 10px 20px; /* Add some padding to the fixed header area */
+      border-radius: 8px; /* Optional: smooth corners */
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Optional: subtle shadow */
     }
 
-    /* Added style for wallet status text */
+    .light-mode .header-buttons {
+        background-color: var(--bg-light); /* Light mode background */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    /* Removed #walletStatus styling as the element is removed */
+    /*
     #walletStatus {
-        margin-right: 15px; /* Spacing between status and buttons */
+        margin-right: 15px;
         font-size: 0.9em;
-        color: #888; /* Default muted color */
+        color: #888;
     }
     .light-mode #walletStatus {
         color: #666;
     }
+    */
 
     /* Modal specific styles for dark/light mode */
     .modal-content {
@@ -207,6 +219,18 @@
         box-shadow: 0 6px 12px rgba(0, 123, 255, 0.3);
     }
 
+    /* Style for the Connect Wallet button when a wallet is connected */
+    #connectWalletBtn.connected {
+        background-color: #28a745; /* Green color for connected state */
+        border-color: #28a745;
+        cursor: default; /* Change cursor to default */
+    }
+    #connectWalletBtn.connected:hover {
+        background-color: #28a745; /* Keep green on hover */
+        border-color: #28a745;
+        box-shadow: 0 2px 4px rgba(0,123,255,0.2); /* Less pronounced shadow */
+    }
+
     .or-separator {
         display: flex;
         align-items: center;
@@ -246,7 +270,7 @@
 
 <body class="dark-mode">
   <div class="header-buttons">
-    <span id="walletStatus">Backend Wallet: Not Connected</span> <!-- Un-commented and made visible -->
+    <!-- Removed <span id="walletStatus">Active Wallet: Not Connected</span> -->
     <button id="connectWalletBtn" class="btn btn-sm btn-outline-light">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
         <path d="M0 3a2 2 0 0 1 2-2h13.5a.5.5 0 0 1 0 1H2a1 1 0 0 0-1 1v8.5a1 1 0 0 0 1 1h12.5a.5.5 0 = 0 1 0 1H2a2 2 0 0 1-2-2z"/>
@@ -259,7 +283,6 @@
   <div class="container py-5">
     <h1 class="text-center mb-4 animate__animated animate__fadeInDown">🚀 BlockSense</h1>
 
-    <!-- Explain -->
     <div class="card animate__animated animate__fadeInUp">
       <h4>🧠 Explain Solidity Contract</h4>
       <form id="formContract">
@@ -276,7 +299,6 @@
       </div>
     </div>
 
-    <!-- Chat -->
     <div class="card animate__animated animate__fadeInUp">
       <h4>🤖 EVM Chatbot</h4>
       <form id="chatForm">
@@ -291,12 +313,10 @@
       <div class="output-box" id="chatResponse" style="display:none"></div>
     </div>
 
-    <!-- Deploy -->
     <div class="card animate__animated animate__fadeInUp">
       <h4>📦 Deploy Contract</h4>
       <textarea id="deployAbi" rows="4" placeholder="Enter ABI as JSON..."></textarea>
       <textarea id="deployBytecode" rows="4" placeholder="Enter Bytecode..."></textarea>
-      <!-- Removed constructorArgs input field as per user request -->
       <div class="text-end mt-2">
         <button class="btn btn-warning" onclick="deployContract()">
           Deploy <span class="spinner-border spinner-border-sm" id="deploySpinner"></span>
@@ -306,7 +326,6 @@
       <div id="deployResult" class="output-box mt-2"></div>
     </div>
 
-    <!-- Interact -->
     <div class="card animate__animated animate__fadeInUp">
       <h4>🔧 Interact with Contract</h4>
       <textarea id="interactAbi" rows="4" placeholder="Enter ABI as JSON..."></textarea>
@@ -322,14 +341,12 @@
       <div id="interactResult" class="output-box mt-2"></div>
     </div>
 
-    <!-- DAG -->
     <div class="card animate__animated animate__fadeInUp">
       <h4>🌐 BlockDAG Visualization</h4>
       <div id="blockdagGraph"></div>
     </div>
   </div>
 
-  <!-- Connect Wallet Modal -->
   <div class="modal fade" id="walletConnectModal" tabindex="-1" aria-labelledby="walletConnectModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -390,7 +407,6 @@
     </div>
   </div>
 
-  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
   <script>hljs.highlightAll();</script>
@@ -413,6 +429,7 @@
       } else {
         connectWalletBtn.classList.add('btn-outline-light');
       }
+      updateConnectWalletButtonStatus(); // Call to update button style based on theme change
     }
 
     document.getElementById('themeToggle').onclick = () => {
@@ -425,6 +442,7 @@
     // --- Wallet Selection Elements ---
     const radioBackendWallet = document.getElementById('radioBackendWallet');
     const radioMetaMask = document.getElementById('radioMetaMask');
+    const connectWalletButtonHeader = document.getElementById('connectWalletBtn'); // Get the button in the header
 
     // --- Global Wallet State ---
     let backendWalletConnectedAddress = null; // Stores the address connected via private key (backend)
@@ -439,12 +457,11 @@
     const confirmConnectBtn = document.getElementById('confirmConnectBtn');
     const connectWalletSpinner = document.getElementById('connectWalletSpinner');
     const walletConnectMessage = document.getElementById('walletConnectMessage');
-    const walletStatusSpan = document.getElementById('walletStatus'); // For navbar status
+    // Removed walletStatusSpan as it's no longer needed in the header
 
-    document.getElementById('connectWalletBtn').onclick = () => {
+    connectWalletButtonHeader.onclick = () => { // Event listener for the header button
       walletConnectMessage.innerHTML = ''; // Clear previous messages
-      // Update radio button labels and disabled states based on current connections
-      updateWalletRadioButtons();
+      updateWalletRadioButtons(); // Ensure radio buttons and status are up-to-date
       walletConnectModal.show();
     };
 
@@ -496,44 +513,29 @@
         if (data.status === 'success') {
           backendWalletConnectedAddress = data.address; // Store for later use
           walletConnectMessage.innerHTML = `<div class="text-success">Backend Wallet Connected: ${data.address}</div>`;
-          if (walletStatusSpan) {
-            walletStatusSpan.textContent = `Backend Wallet: ${data.address.substring(0, 6)}...${data.address.substring(data.address.length - 4)}`;
-            walletStatusSpan.style.color = '#28a745'; /* Green for success */
-          }
-          radioBackendWallet.disabled = false; // Enable radio button
-          radioBackendWallet.checked = true; // Select backend wallet by default
-          radioBackendWallet.parentElement.querySelector('label').textContent = `Backend (${data.address.substring(0, 6)}...)`;
-
           // Save credentials to localStorage on successful connection
           localStorage.setItem('backendPrivateKey', privateKey);
           localStorage.setItem('backendNodeUrl', nodeUrl);
-
+          updateWalletRadioButtons(); // Update UI state after connection
+          updateConnectWalletButtonStatus(); // Update the header button
           setTimeout(() => walletConnectModal.hide(), 1500);
         } else {
           backendWalletConnectedAddress = null; // Clear if connection fails
           walletConnectMessage.innerHTML = `<div class="text-danger">Error: ${data.message}</div>`;
-          if (walletStatusSpan) {
-            walletStatusSpan.textContent = `Backend Wallet: Not Connected`;
-            walletStatusSpan.style.color = '#dc3545'; /* Red for error */
-          }
-          radioBackendWallet.disabled = true; // Keep disabled if connection fails
-          radioBackendWallet.parentElement.querySelector('label').textContent = 'Backend (Private Key)';
           // Clear localStorage if connection fails
           localStorage.removeItem('backendPrivateKey');
           localStorage.removeItem('backendNodeUrl');
+          updateWalletRadioButtons(); // Update UI state after failure
+          updateConnectWalletButtonStatus(); // Update the header button
         }
       } catch (error) {
         backendWalletConnectedAddress = null; // Clear on network error
         walletConnectMessage.innerHTML = `<div class="text-danger">Network error: ${error.message}</div>`;
-        if (walletStatusSpan) {
-            walletStatusSpan.textContent = `Backend Wallet: Not Connected`;
-            walletStatusSpan.style.color = '#dc3545'; /* Red for error */
-        }
-        radioBackendWallet.disabled = true; // Keep disabled if connection fails
-        radioBackendWallet.parentElement.querySelector('label').textContent = 'Backend (Private Key)';
         // Clear localStorage on network error
         localStorage.removeItem('backendPrivateKey');
         localStorage.removeItem('backendNodeUrl');
+        updateWalletRadioButtons(); // Update UI state after network error
+        updateConnectWalletButtonStatus(); // Update the header button
       } finally {
         connectWalletSpinner.style.display = 'none';
         confirmConnectBtn.disabled = false;
@@ -547,16 +549,9 @@
     const updateMetaMaskInternalState = async (accounts) => {
       if (accounts && accounts.length > 0) {
         metaMaskConnectedAccount = accounts[0];
-        radioMetaMask.disabled = false; // Enable radio button
-        radioMetaMask.parentElement.querySelector('label').textContent = `MetaMask (${metaMaskConnectedAccount.substring(0, 6)}...)`;
-        connectMetaMaskBtn.textContent = 'MetaMask Connected'; // Update button text
-        connectMetaMaskBtn.classList.add('btn-success'); // Change to success color
-        connectMetaMaskBtn.classList.remove('btn-info'); // Remove info color
-        connectMetaMaskBtn.disabled = true; // Disable button after connecting
-
-        // If backend wallet is not connected, make MetaMask the default active
-        if (!backendWalletConnectedAddress) {
-            radioMetaMask.checked = true;
+        // Ensure web3MetaMask is initialized if accounts are found
+        if (typeof window.ethereum !== 'undefined' && !web3MetaMask) {
+          web3MetaMask = new Web3(window.ethereum);
         }
 
         if (typeof window.ethereum !== 'undefined' && window.ethereum.isMetaMask && web3MetaMask) {
@@ -573,27 +568,18 @@
       } else {
         // No accounts connected or accounts array is empty
         metaMaskConnectedAccount = null;
-        radioMetaMask.disabled = true; // Disable radio button
-        radioMetaMask.parentElement.querySelector('label').textContent = 'MetaMask (Not Connected)'; // Update label text
-        connectMetaMaskBtn.textContent = 'Connect with MetaMask'; // Reset button text
-        connectMetaMaskBtn.classList.remove('btn-success'); // Remove success color
-        connectMetaMaskBtn.classList.add('btn-info'); // Add info color back
-        connectMetaMaskBtn.disabled = false; // Enable button
-
-        // If MetaMask was selected, switch selection if backend is available
-        if (radioMetaMask.checked && !radioBackendWallet.disabled) {
-            radioBackendWallet.checked = true;
-        }
+        web3MetaMask = null; // Clear web3MetaMask instance
       }
-      updateWalletRadioButtons(); // Re-evaluate which radio button should be checked/enabled
+      updateWalletRadioButtons(); // Always update UI state after MetaMask internal state changes
+      updateConnectWalletButtonStatus(); // Update the header button
     };
 
-    // Function to initiate MetaMask connection
+    // Function to initiate MetaMask connection (on button click)
     const connectMetaMask = async () => {
       if (typeof window.ethereum !== 'undefined') {
         try {
           const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-          web3MetaMask = new Web3(window.ethereum);
+          web3MetaMask = new Web3(window.ethereum); // Initialize web3MetaMask here as well
           updateMetaMaskInternalState(accounts);
         } catch (error) {
           console.error("User rejected connection or other MetaMask error:", error);
@@ -605,7 +591,6 @@
         const isMobile = /android|iphone|ipad|ipod|blackberry|windows phone/i.test(userAgent);
 
         if (isMobile) {
-          // CORRECTED DEEP LINK CONSTRUCTION
           // Use window.location.href directly as it provides the full, unencoded URL
           const metamaskDeepLink = `https://metamask.app.link/dapp/${window.location.href}`;
 
@@ -621,8 +606,7 @@
 
     connectMetaMaskBtn.addEventListener('click', connectMetaMask);
 
-    // Listen for MetaMask accounts and chain changes *only if ethereum object is present*
-    // These listeners should remain to react to user actions within MetaMask
+    // Listen for MetaMask accounts and chain changes proactively if ethereum object is present
     if (typeof window.ethereum !== 'undefined') {
       window.ethereum.on('accountsChanged', (accounts) => {
         console.log("MetaMask accounts changed:", accounts);
@@ -631,17 +615,33 @@
 
       window.ethereum.on('chainChanged', (chainId) => {
         console.log("MetaMask chain changed:", chainId);
-        if (web3MetaMask) {
-            window.ethereum.request({ method: 'eth_accounts' })
-              .then(updateMetaMaskInternalState)
-              .catch(error => console.error("Error after chain changed:", error));
-        }
+        // Re-fetch accounts to ensure status update after chain change
+        window.ethereum.request({ method: 'eth_accounts' })
+          .then(updateMetaMaskInternalState)
+          .catch(error => console.error("Error after chain changed:", error));
       });
     }
 
-
-    // Function to update the state of the wallet radio buttons
+    // Function to update the state of the wallet radio buttons (inside modal)
     function updateWalletRadioButtons() {
+        // Update MetaMask radio button and button state
+        if (metaMaskConnectedAccount) {
+            radioMetaMask.disabled = false;
+            radioMetaMask.parentElement.querySelector('label').textContent = `MetaMask (${metaMaskConnectedAccount.substring(0, 6)}...)`;
+            connectMetaMaskBtn.textContent = 'MetaMask Connected';
+            connectMetaMaskBtn.classList.remove('btn-info');
+            connectMetaMaskBtn.classList.add('btn-success');
+            connectMetaMaskBtn.disabled = true; // Disable if already connected
+        } else {
+            radioMetaMask.disabled = true;
+            radioMetaMask.parentElement.querySelector('label').textContent = 'MetaMask (Not Connected)';
+            connectMetaMaskBtn.textContent = 'Connect with MetaMask';
+            connectMetaMaskBtn.classList.remove('btn-success');
+            connectMetaMaskBtn.classList.add('btn-info');
+            connectMetaMaskBtn.disabled = false; // Enable if not connected
+        }
+
+        // Update Backend radio button state
         if (backendWalletConnectedAddress) {
             radioBackendWallet.disabled = false;
             radioBackendWallet.parentElement.querySelector('label').textContent = `Backend (${backendWalletConnectedAddress.substring(0, 6)}...)`;
@@ -650,29 +650,42 @@
             radioBackendWallet.parentElement.querySelector('label').textContent = 'Backend (Private Key)';
         }
 
-        if (metaMaskConnectedAccount) {
-            radioMetaMask.disabled = false;
-            radioMetaMask.parentElement.querySelector('label').textContent = `MetaMask (${metaMaskConnectedAccount.substring(0, 6)}...)`;
-        } else {
-            radioMetaMask.disabled = true;
-            radioMetaMask.parentElement.querySelector('label').textContent = 'MetaMask (Not Connected)';
-        }
-
-        // Priority logic for which radio button is checked: MetaMask > Backend > Default (neither checked)
+        // Determine which wallet is actively selected for the radio buttons
         if (metaMaskConnectedAccount) {
             radioMetaMask.checked = true;
-            radioBackendWallet.checked = false; // Ensure backend is unchecked
+            radioBackendWallet.checked = false;
         } else if (backendWalletConnectedAddress) {
             radioBackendWallet.checked = true;
-            radioMetaMask.checked = false; // Ensure MetaMask is unchecked
+            radioMetaMask.checked = false;
         } else {
-            // If neither is truly connected, ensure both are unchecked.
             radioBackendWallet.checked = false;
             radioMetaMask.checked = false;
         }
     }
 
-    // --- Disconnect Wallet Button Logic (NEW) ---
+    // New function to update the header's Connect Wallet button appearance
+    function updateConnectWalletButtonStatus() {
+        if (backendWalletConnectedAddress || metaMaskConnectedAccount) {
+            connectWalletButtonHeader.textContent = "Wallet Connected";
+            connectWalletButtonHeader.classList.remove('btn-outline-light', 'btn-outline-dark');
+            connectWalletButtonHeader.classList.add('btn-success', 'connected'); // Add 'connected' class for styling
+            connectWalletButtonHeader.disabled = true; // Disable the button in the header when connected
+        } else {
+            connectWalletButtonHeader.textContent = "Connect Wallet";
+            connectWalletButtonHeader.classList.remove('btn-success', 'connected');
+            // Re-apply correct outline color based on current theme
+            const currentTheme = localStorage.getItem('theme') || 'dark';
+            if (currentTheme === 'light') {
+                connectWalletButtonHeader.classList.add('btn-outline-dark');
+            } else {
+                connectWalletButtonHeader.classList.add('btn-outline-light');
+            }
+            connectWalletButtonHeader.disabled = false; // Enable the button
+        }
+    }
+
+
+    // --- Disconnect Wallet Button Logic ---
     const disconnectWalletBtn = document.getElementById('disconnectWalletBtn');
 
     disconnectWalletBtn.onclick = async () => {
@@ -703,12 +716,6 @@
         localStorage.removeItem('backendPrivateKey');
         localStorage.removeItem('backendNodeUrl');
 
-        if (walletStatusSpan) {
-            walletStatusSpan.textContent = 'Backend Wallet: Not Connected';
-            walletStatusSpan.style.color = '#dc3545'; /* Red for not connected */
-        }
-
-
         // Disconnect MetaMask (clear local state and reset button/label)
         if (metaMaskConnectedAccount) {
             metaMaskConnectedAccount = null;
@@ -717,14 +724,8 @@
             alert("MetaMask wallet disconnected from BlockSense. You may need to manually disconnect this site in MetaMask if you wish to revoke site permissions.");
         }
 
-        // Reset MetaMask button and radio state explicitly
-        connectMetaMaskBtn.textContent = 'Connect with MetaMask';
-        connectMetaMaskBtn.classList.remove('btn-success');
-        connectMetaMaskBtn.classList.add('btn-info');
-        connectMetaMaskBtn.disabled = false;
-
-
-        updateWalletRadioButtons(); // Re-evaluate states after disconnect
+        updateWalletRadioButtons(); // Re-evaluate states after disconnect (for modal radio buttons)
+        updateConnectWalletButtonStatus(); // Update the header button
         walletConnectModal.hide(); // Close the modal
     };
 
@@ -763,27 +764,32 @@
       const spinner = e.submitter.querySelector('.spinner-border');
       const loader = document.getElementById('chatLoader');
       const chatBox = document.getElementById('chatResponse');
-      const input = document.getElementById('chat_input').value;
+      const input = document.getElementById('chat_input').value.trim(); // Trim input
       spinner.style.display = 'inline-block';
       loader.style.display = 'block';
-      try {
-        let responseText;
-        let targetAddress = null; // To store address if provided in query
-        let amount = null; // To store amount if provided in query
 
-        // Pattern for "check balance of 0x..."
+      // --- Debugging logs ---
+      console.log("--- Chat Form Submission DEBUG ---");
+      console.log("Input:", input);
+      console.log("radioMetaMask.checked:", radioMetaMask.checked);
+      console.log("metaMaskConnectedAccount:", metaMaskConnectedAccount);
+      console.log("radioBackendWallet.checked:", radioBackendWallet.checked);
+      console.log("backendWalletConnectedAddress:", backendWalletConnectedAddress);
+      // --- End Debugging logs ---
+
+      try {
+        let responseText = ''; // Initialize responseText
+
+        // Patterns for client-side handled commands
         const balanceAddressMatch = input.match(/check balance of (0x[0-9a-fA-F]{40})/i);
-        // Pattern for general "balance" or "my balance"
         const generalBalanceMatch = input.match(/^(?:my\s+)?balance(?:\s*\?)?$/i);
-        // Pattern for "transfer X ETH to 0x..."
         const transferMatch = input.match(/transfer\s+([\d.]+)\s*eth\s+to\s+(0x[0-9a-fA-F]{40})/i);
 
-
-        if (transferMatch) { // Handle transfer logic first
-            amount = parseFloat(transferMatch[1]);
-            targetAddress = transferMatch[2];
-
-            if (radioMetaMask.checked && metaMaskConnectedAccount) {
+        // --- Client-side Wallet Command Handling ---
+        if (transferMatch) {
+            const amount = parseFloat(transferMatch[1]);
+            const targetAddress = transferMatch[2];
+            if (radioMetaMask.checked && metaMaskConnectedAccount && web3MetaMask) {
                 try {
                     // Convert amount to string before passing to toWei for MetaMask transactions
                     const valueWei = web3MetaMask.utils.toWei(amount.toString(), 'ether');
@@ -791,27 +797,31 @@
                         from: metaMaskConnectedAccount,
                         to: targetAddress,
                         value: valueWei,
-                        gas: 21000
+                        gas: 21000 // Standard ETH transfer gas
                     });
                     responseText = `✅ MetaMask transaction sent! Hash: <code>${txHash.transactionHash}</code>`;
                 } catch (metaMaskError) {
                     responseText = `❌ MetaMask Transaction Error: ${metaMaskError.message}`;
                 }
-            } else if (radioBackendWallet.checked && backendWalletConnectedAddress) {
-                // Send transfer request to backend if backend wallet is active
-                const res = await fetch('/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_input: input }) // Send the original input for backend to parse
-                });
-                const data = await res.json();
-                responseText = data.response || data.error || 'Unknown error during backend transfer.';
             } else {
-                responseText = 'Please connect either a MetaMask or Backend wallet to perform transfers.';
+                // If transfer request, but MetaMask not active, try backend
+                // Or, if user explicitly selected backend wallet
+                if (radioBackendWallet.checked && backendWalletConnectedAddress) {
+                     // Still send to backend if backend wallet is active and client-side can't handle (e.g. transfer for backend)
+                     // Re-using existing backend /chat route for transfer logic.
+                    const res = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_input: input })
+                    });
+                    const data = await res.json();
+                    responseText = data.response || data.error || 'Unknown error during backend transfer.';
+                } else {
+                     responseText = 'Please connect either a MetaMask or Backend wallet to perform transfers.';
+                }
             }
-        } else if (balanceAddressMatch) { // Handle "check balance of 0x..."
-            targetAddress = balanceAddressMatch.group(1);
-            // Check if ANY wallet (MetaMask or Backend) is active for balance query
+        } else if (balanceAddressMatch) {
+            const targetAddress = balanceAddressMatch[1];
             if (radioMetaMask.checked && web3MetaMask) {
                 try {
                     const balanceWei = await web3MetaMask.eth.getBalance(targetAddress);
@@ -820,18 +830,21 @@
                 } catch (error) {
                     responseText = `MetaMask: Error getting balance for ${targetAddress}: ${error.message}`;
                 }
-            } else if (radioBackendWallet.checked && backendWalletConnectedAddress) {
-                 const res = await fetch('/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_input: input }) // Send original input to backend
-                });
-                const data = await res.json();
-                responseText = data.response || data.error || `Unknown error getting balance from backend.`;
             } else {
-                responseText = 'Please connect a wallet to check its balance.';
+                // If balance check for specific address, but MetaMask not active, try backend
+                if (radioBackendWallet.checked && backendWalletConnectedAddress) {
+                    const res = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_input: input })
+                    });
+                    const data = await res.json();
+                    responseText = `Backend: ${data.response || data.error || `Unknown error getting balance from backend.`}`;
+                } else {
+                    responseText = 'Please connect a wallet to check its balance.';
+                }
             }
-        } else if (generalBalanceMatch) { // Handle general "balance" query for active wallet
+        } else if (generalBalanceMatch) {
             if (radioMetaMask.checked && metaMaskConnectedAccount && web3MetaMask) {
                 try {
                     const balanceWei = await web3MetaMask.eth.getBalance(metaMaskConnectedAccount);
@@ -840,20 +853,22 @@
                 } catch (error) {
                     responseText = `MetaMask: Error getting balance for connected account: ${error.message}`;
                 }
-            } else if (radioBackendWallet.checked && backendWalletConnectedAddress) {
-                // Fetch balance using backend if backend wallet is active
-                const res = await fetch('/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_input: `check balance of ${backendWalletConnectedAddress}` })
-                });
-                const data = await res.json();
-                responseText = `Backend: ${data.response || data.error || 'Unknown error getting balance from backend.'}`;
             } else {
-                responseText = 'Please connect a wallet to check its balance.';
+                // If general balance request, but MetaMask not active, try backend
+                if (radioBackendWallet.checked && backendWalletConnectedAddress) {
+                    const res = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_input: `check balance of ${backendWalletConnectedAddress}` }) // Send explicit query for backend
+                    });
+                    const data = await res.json();
+                    responseText = `Backend: ${data.response || data.error || 'Unknown error getting balance from backend.'}`;
+                } else {
+                    responseText = 'Please connect a wallet to check its balance.';
+                }
             }
         } else {
-            // Default to backend for all other commands
+            // --- Default to backend for all other LLM commands ---
             const res = await fetch('/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -863,6 +878,7 @@
             responseText = data.response || data.error || 'Unknown error.';
         }
 
+        // Display the response
         chatBox.innerHTML += `<div><strong>You:</strong> ${input}</div><div><strong>AI:</strong> ${responseText}</div><hr>`;
         chatBox.style.display = 'block';
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -886,7 +902,7 @@
 
       const abiString = document.getElementById('deployAbi').value.trim();
       const bytecode = document.getElementById('deployBytecode').value.trim();
-      // Removed constructorArgsString parsing
+      // Removed constructorArgs input field
 
       if (!abiString || !bytecode) {
         resultBox.innerHTML = '<div class="alert alert-warning mt-2">Please enter both ABI and Bytecode.</div>';
@@ -907,8 +923,6 @@
         loader.style.display = 'none';
         return;
       }
-
-      // Removed constructorArgs variable and its parsing logic
 
       try {
         let contractAddressOrError;
@@ -1089,6 +1103,27 @@
       }
     }
 
+    // New function to initialize MetaMask state on load
+    async function initMetaMaskState() {
+        if (typeof window.ethereum !== 'undefined') {
+            try {
+                // eth_accounts returns an array of addresses connected to the site
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    web3MetaMask = new Web3(window.ethereum); // Initialize web3MetaMask
+                    updateMetaMaskInternalState(accounts); // This will update metaMaskConnectedAccount and call updateWalletRadioButtons
+                } else {
+                    updateMetaMaskInternalState([]); // Call with empty array to clear state if no accounts
+                }
+            } catch (error) {
+                console.error("Error checking initial MetaMask accounts:", error);
+                updateMetaMaskInternalState([]); // Ensure state is cleared on error
+            }
+        } else {
+            updateMetaMaskInternalState([]); // No window.ethereum, so clear MetaMask state
+        }
+    }
+
     // Function to attempt automatic backend wallet reconnection on load
     async function autoConnectBackendWallet() {
         const storedPrivateKey = localStorage.getItem('backendPrivateKey');
@@ -1106,16 +1141,6 @@
 
                 if (data.status === 'success') {
                     backendWalletConnectedAddress = data.address;
-                    if (walletStatusSpan) {
-                        walletStatusSpan.textContent = `Backend Wallet: ${data.address.substring(0, 6)}...${data.address.substring(data.address.length - 4)}`;
-                        walletStatusSpan.style.color = '#28a745'; /* Green for success */
-                    }
-                    radioBackendWallet.disabled = false;
-                    // Only check if MetaMask is not already connected
-                    if (!metaMaskConnectedAccount) {
-                        radioBackendWallet.checked = true;
-                    }
-                    radioBackendWallet.parentElement.querySelector('label').textContent = `Backend (${data.address.substring(0, 6)}...)`;
                     console.log("Backend wallet reconnected automatically.");
                     walletConnectMessage.innerHTML = '<div class="text-success">Backend wallet reconnected automatically.</div>';
                 } else {
@@ -1125,10 +1150,6 @@
                     localStorage.removeItem('backendPrivateKey');
                     localStorage.removeItem('backendNodeUrl');
                     backendWalletConnectedAddress = null; // Ensure state is reset
-                    if (walletStatusSpan) {
-                        walletStatusSpan.textContent = 'Backend Wallet: Not Connected';
-                        walletStatusSpan.style.color = '#dc3545'; /* Red for error */
-                    }
                 }
             } catch (error) {
                 console.error("Network error during auto-reconnection:", error);
@@ -1137,23 +1158,16 @@
                 localStorage.removeItem('backendPrivateKey');
                 localStorage.removeItem('backendNodeUrl');
                 backendWalletConnectedAddress = null; // Ensure state is reset
-                if (walletStatusSpan) {
-                    walletStatusSpan.textContent = 'Backend Wallet: Not Connected';
-                    walletStatusSpan.style.color = '#dc3545'; /* Red for error */
-                }
             }
         }
-        updateWalletRadioButtons(); // Ensure radio buttons reflect current state
     }
 
-
-    window.onload = () => {
+    window.onload = async () => { // Make onload async
         loadBlockDAG();
         // Ensure private key and derived address inputs are empty on load
         privateKeyInput.value = '';
         walletAddressInput.value = '';
-        // Set default node URL to Ganache common address, will be overwritten by localStorage if present
-        nodeUrlInput.value = 'http://127.0.0.1:8545';
+        nodeUrlInput.value = 'http://127.0.0.1:8545'; // Set default node URL
 
         // Load stored values if any, and set them in the input fields
         const storedPrivateKey = localStorage.getItem('backendPrivateKey');
@@ -1173,15 +1187,14 @@
             nodeUrlInput.value = storedNodeUrl;
         }
 
+        // Call initial setup functions in order
+        // Auto-connect backend first as it might be synchronous or quicker to get status
+        await autoConnectBackendWallet();
+        // Then initialize MetaMask state
+        await initMetaMaskState();
 
-        // Initialize wallet status display and attempt auto-reconnect
-        if (walletStatusSpan) {
-            walletStatusSpan.textContent = 'Backend Wallet: Not Connected';
-            walletStatusSpan.style.color = '#dc3545'; /* Red for not connected */
-        }
-        autoConnectBackendWallet(); // Attempt auto-reconnection
-
-        updateWalletRadioButtons(); // Initial update after potential auto-fill
+        // Finally, update the header button to reflect the combined state
+        updateConnectWalletButtonStatus();
     };
 
   </script>
