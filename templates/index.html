@@ -159,7 +159,7 @@
 
     .light-mode .modal-content .text-danger,
     .light-mode .modal-content .text-info,
-    .light-mode .modal-content .text-success,
+    .light-content .modal-content .text-success,
     .light-content .modal-content .text-warning { /* Added text-warning here */
       color: var(--text-light) !important; /* Override Bootstrap's fixed color for light mode */
     }
@@ -343,6 +343,10 @@
             <input type="password" class="form-control" id="privateKeyInput" placeholder="Enter your private key (e.g., 0x...)">
           </div>
           <div class="mb-3">
+            <label for="nodeUrlInput" class="form-label">EVM Node URL (e.g., http://127.0.0.1:8545 or https://sepolia.infura.io/v3/...):</label>
+            <input type="text" class="form-control" id="nodeUrlInput" placeholder="Enter your EVM node URL">
+          </div>
+          <div class="mb-3">
             <label for="walletAddressInput" class="form-label">Active Wallet Address:</label>
             <input type="text" class="form-control" id="walletAddressInput" readonly placeholder="Not Connected">
           </div>
@@ -418,6 +422,7 @@
     // --- Connect Wallet Modal Logic (Backend Private Key) ---
     const walletConnectModal = new bootstrap.Modal(document.getElementById('walletConnectModal'));
     const privateKeyInput = document.getElementById('privateKeyInput');
+    const nodeUrlInput = document.getElementById('nodeUrlInput'); // New input for node URL
     const walletAddressInput = document.getElementById('walletAddressInput');
     const confirmConnectBtn = document.getElementById('confirmConnectBtn');
     const connectWalletSpinner = document.getElementById('connectWalletSpinner');
@@ -453,8 +458,14 @@
 
     confirmConnectBtn.onclick = async () => {
       const privateKey = privateKeyInput.value.trim();
+      const nodeUrl = nodeUrlInput.value.trim(); // Get the node URL
+
       if (!privateKey) {
         walletConnectMessage.innerHTML = '<div class="text-danger">Please enter your private key.</div>';
+        return;
+      }
+      if (!nodeUrl) {
+        walletConnectMessage.innerHTML = '<div class="text-danger">Please enter your EVM Node URL.</div>';
         return;
       }
 
@@ -466,7 +477,7 @@
         const res = await fetch('/set_wallet_config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ private_key: privateKey })
+          body: JSON.stringify({ private_key: privateKey, node_url: nodeUrl }) // Send node URL
         });
         const data = await res.json();
 
@@ -666,6 +677,8 @@
         backendWalletConnectedAddress = null;
         privateKeyInput.value = '';
         walletAddressInput.value = '';
+        // Reset node URL input to default or empty if desired, for now let's keep it to allow re-connection easily
+        // nodeUrlInput.value = ''; // Uncomment this if you want to clear the node URL on disconnect
         if (walletStatusSpan) {
             walletStatusSpan.textContent = 'No Backend Wallet Connected';
         }
@@ -1056,6 +1069,8 @@
         // Ensure private key and derived address inputs are empty on load
         privateKeyInput.value = '';
         walletAddressInput.value = '';
+        // Set default node URL to Ganache common address
+        nodeUrlInput.value = 'http://127.0.0.1:8545';
         // No wallet is connected by default, so update radio buttons to reflect that
         updateWalletRadioButtons();
     };
