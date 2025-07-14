@@ -124,3 +124,7 @@ Navigate to the BlockDAG section of the application (if present in `index.html`)
 ## 🤝 Contributing
 
 Contributions are welcome! If you have suggestions for improvements or new features, please open an issue or submit a pull request.
+
+## 📄 License
+
+This project is open-sourced under the MIT License. See the `LICENSE` file for more details.
