@@ -2,3 +2,4 @@ Flask
 web3
 python-dotenv
 ollama
+requests # Added for making HTTP requests

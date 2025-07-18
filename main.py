@@ -4,7 +4,8 @@ from blockdag import get_blockdag_data
 from evm_utils import (
     send_eth, get_balance, estimate_gas, check_tx_status,
     deploy_contract, interact_with_contract, set_current_account, get_current_address, clear_current_account,
-    set_node_url, get_web3_instance  # Import the new function
+    set_node_url, get_web3_instance, # Import the new function
+    verify_contract_source # Import the new verification function
 )
 import re, json
 import os
@@ -208,6 +209,32 @@ def interact():
     except Exception as e:
         print(f"DEBUG: Error during contract interaction in Flask route: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/verify_contract', methods=['POST'])
+def verify_contract():
+    """
+    Endpoint to trigger smart contract source code verification on a block explorer.
+    """
+    try:
+        data = request.get_json()
+        contract_address = data.get('contract_address')
+        source_code = data.get('source_code')
+        contract_name = data.get('contract_name')
+        compiler_version = data.get('compiler_version')
+        optimization_used = data.get('optimization_used', False) # Default to False
+        runs = data.get('runs', 200) # Default runs for optimizer
+
+        if not all([contract_address, source_code, contract_name, compiler_version]):
+            return jsonify({'error': 'Missing required fields for contract verification.'}), 400
+
+        result = verify_contract_source(
+            contract_address, source_code, contract_name, compiler_version, optimization_used, runs
+        )
+        return jsonify({'status': 'success', 'message': result})
+    except Exception as e:
+        print(f"DEBUG: Error during contract verification in Flask route: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 @app.route('/blockdag', methods=['GET'])
