@@ -10,46 +10,134 @@
   <script src="https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/web3@1.7.0/dist/web3.min.js"></script>
   <style>
+    /* CSS Variables for theming */
     :root {
-      --bg-dark: #0d1117; --card-dark: #161b22; --text-dark: #fff;
-      --bg-light: #f8f9fa; --card-light: #fff; --text-light: #000;
-      --highlight-dark: #58a6ff; --highlight-light: #007bff;
-    }
+      --bg-dark: #0d1117;
+      --card-dark: #161b22;
+      --text-dark: #fff;
+      --highlight-dark: #58a6ff;
 
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: var(--bg-dark);
-      transition: all 0.3s;
-      padding-top: 70px; /* Add padding for the fixed header */
+      /* Input/Textarea/Pre/Code specific variables for dark mode */
+      --input-bg: #0d1117;
+      --input-color: white;
+      --input-border: #444;
+      --input-focus-border: var(--highlight-dark);
+      --input-focus-shadow: rgba(88, 166, 255, 0.25);
+      --placeholder-color: #bbb; /* Lighter grey for placeholders in dark mode */
+
+      --loader-text-color: #aaa; /* Dark mode loader text */
+
+      --output-pre-code-bg: #0d1117;
+      --output-pre-code-color: white;
+      --output-pre-code-border: #444;
+
+      /* Alert colors for dark mode */
+      --alert-success-bg: #198754; /* Bootstrap success green */
+      --alert-success-text: #fff;
+      --alert-danger-bg: #dc3545; /* Bootstrap danger red */
+      --alert-danger-text: #fff;
+      --alert-warning-bg: #ffc107; /* Bootstrap warning yellow */
+      --alert-warning-text: #000; /* Black text on yellow for readability */
+      --alert-info-bg: #0dcaf0; /* Bootstrap info cyan */
+      --alert-info-text: #000; /* Black text on cyan for readability */
     }
 
     .light-mode {
+      --bg-light: #f8f9fa;
+      --card-light: #fff;
+      --text-light: #000;
+      --highlight-light: #007bff;
+
+      /* Input/Textarea/Pre/Code specific variables for light mode */
+      --input-bg: #fff;
+      --input-color: #000;
+      --input-border: #ccc;
+      --input-focus-border: var(--highlight-light);
+      --input-focus-shadow: rgba(0, 123, 255, 0.25);
+      --placeholder-color: #777; /* Darker grey for placeholders in light mode */
+
+      --loader-text-color: #555; /* Light mode loader text */
+
+      --output-pre-code-bg: #f8f9fa;
+      --output-pre-code-color: #000;
+      --output-pre-code-border: #ccc;
+
+      /* Alert colors for light mode */
+      --alert-success-bg: #d1e7dd; /* Bootstrap success light green */
+      --alert-success-text: #0f5132;
+      --alert-danger-bg: #f8d7da; /* Bootstrap danger light red */
+      --alert-danger-text: #842029;
+      --alert-warning-bg: #fff3cd; /* Bootstrap warning light yellow */
+      --alert-warning-text: #664d03;
+      --alert-info-bg: #cff4fc; /* Bootstrap info light cyan */
+      --alert-info-text: #055160;
+    }
+
+    /* Ensure HTML and Body take full viewport dimensions */
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden; /* Prevent horizontal scroll */
+    }
+
+    /* New class for the main page background */
+    .page-background {
+      min-height: 100vh; /* Ensure it covers the full viewport height */
+      width: 100vw; /* Ensure it covers the full viewport width */
+      background-color: var(--bg-dark); /* Default for dark mode */
+      color: var(--text-dark); /* Default text color */
+      transition: background-color 0.3s, color 0.3s; /* Smooth transition */
+      font-family: 'Segoe UI', sans-serif; /* Apply font here */
+      position: absolute; /* Position absolutely to cover everything */
+      top: 0;
+      left: 0;
+      z-index: -1; /* Place it behind other content */
+    }
+
+    .light-mode .page-background {
       background-color: var(--bg-light);
-      color: var(--text-light) !important; /* Ensure all body text is light text color */
-    }
-
-    /* Ensure all primary text elements adhere to theme */
-    body,
-    h1, h2, h3, h4, h5, h6,
-    p,
-    label,
-    span,
-    strong,
-    div { /* Apply to div to catch unclassified text containers */
-      color: var(--text-dark);
-    }
-
-    .light-mode body,
-    .light-mode h1, .light-mode h2, .light-mode h3, .light-mode h4, .light-mode h5, .light-mode h6,
-    .light-mode p,
-    .light-mode label,
-    .light-mode span,
-    .light-mode strong,
-    .light-mode div {
       color: var(--text-light);
     }
 
+    /* Apply padding to the container instead of body for fixed header */
+    .container {
+      padding-top: 70px; /* Add padding for the fixed header */
+      padding-bottom: 20px; /* Add some bottom padding */
+      position: relative; /* Ensure container is above page-background */
+      z-index: 0;
+    }
 
+    /* Headings, labels, and general paragraph text should also follow the text theme */
+    h2, h3, h4, h5, h6, p, label {
+      color: var(--text-dark);
+      transition: color 0.3s; /* Smooth transition for text */
+    }
+    .light-mode h2, .light-mode h3, .light-mode h4, .light-mode h5, .light-mode h6, .light-mode p, .light-mode label {
+      color: var(--text-light);
+    }
+
+    /* Specific fix for BlockSense H1 title */
+    h1 {
+      color: var(--text-dark) !important; /* Ensure it's always themed */
+      transition: color 0.3s; /* Smooth transition */
+    }
+    .light-mode h1 {
+      color: var(--text-light) !important; /* Ensure it's always themed */
+    }
+
+
+    /* Small text (like form-text) should also follow the theme */
+    small.form-text.text-muted {
+      color: var(--text-dark) !important; /* Use !important to override Bootstrap's .text-muted */
+      transition: color 0.3s;
+    }
+    .light-mode small.form-text.text-muted {
+      color: var(--text-light) !important;
+    }
+
+    /* Card styling */
     .card {
       border-radius: 12px;
       background-color: var(--card-dark);
@@ -62,19 +150,43 @@
       background-color: var(--card-light);
     }
 
-    textarea, input, pre, code {
+    /* Input/Textarea styling using new variables */
+    textarea.form-control,
+    input.form-control { /* Targeted specific input types and form-control class */
       width: 100%;
       border-radius: 8px;
       padding: 10px;
-      border: 1px solid #444;
-      background-color: #0d1117;
-      color: white; /* Explicitly white for dark mode */
+      border: 1px solid var(--input-border);
+      background-color: var(--input-bg);
+      color: var(--input-color);
+      transition: background-color 0.3s, color 0.3s, border-color 0.3s;
     }
 
-    .light-mode textarea, .light-mode input, .light-mode pre, .light-mode code {
-      background-color: #fff;
-      color: #000; /* Explicitly black for light mode */
-      border: 1px solid #ccc;
+    /* Placeholder styling */
+    textarea.form-control::placeholder,
+    input.form-control::placeholder {
+      color: var(--placeholder-color);
+      opacity: 1; /* Firefox default opacity is lower */
+      transition: color 0.3s;
+    }
+
+    /* Focus states for inputs */
+    textarea.form-control:focus,
+    input.form-control:focus {
+      border-color: var(--input-focus-border);
+      box-shadow: 0 0 0 0.25rem var(--input-focus-shadow);
+      background-color: var(--input-bg); /* Keep background consistent on focus */
+      color: var(--input-color); /* Keep text color consistent on focus */
+    }
+
+    /* Pre and Code styling using new variables */
+    pre, code {
+      background-color: var(--output-pre-code-bg);
+      color: var(--output-pre-code-color);
+      border: 1px solid var(--output-pre-code-border);
+      border-radius: 8px; /* Ensure consistent border-radius */
+      padding: 10px; /* Ensure consistent padding */
+      transition: background-color 0.3s, color 0.3s, border-color 0.3s;
     }
 
     .output-box {
@@ -99,27 +211,30 @@
     .loader-text {
       font-style: italic;
       font-size: 0.9rem;
-      color: #aaa;
+      color: var(--loader-text-color); /* Use variable */
       margin-top: 0.5rem;
       display: none;
-    }
-
-    .light-mode .loader-text {
-      color: #555;
+      transition: color 0.3s;
     }
 
     #blockdagGraph {
       height: 400px;
       border: 1px solid #333;
       border-radius: 8px;
-      background-color: #1e1e1e;
+      background-color: #1e1e1e; /* Specific for graph background */
+      transition: background-color 0.3s, border-color 0.3s;
     }
+    .light-mode #blockdagGraph {
+      background-color: #f0f0f0; /* Light mode for graph background */
+      border: 1px solid #ccc;
+    }
+
 
     .header-buttons {
       position: fixed;
       top: 10px;
       right: 20px;
-      z-index: 999;
+      z-index: 1000; /* Ensure header buttons are always on top */
       display: flex;
       gap: 10px;
       align-items: center; /* Align items vertically */
@@ -127,6 +242,7 @@
       padding: 10px 20px; /* Add some padding to the fixed header area */
       border-radius: 8px; /* Optional: smooth corners */
       box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Optional: subtle shadow */
+      transition: background-color 0.3s, box-shadow 0.3s;
     }
 
     .light-mode .header-buttons {
@@ -138,14 +254,18 @@
     .modal-content {
       background-color: var(--card-dark);
       border-radius: 12px;
+      color: var(--text-dark); /* Ensure modal content text is themed */
+      transition: background-color 0.3s, color 0.3s;
     }
 
     .light-mode .modal-content {
       background-color: var(--card-light);
+      color: var(--text-light); /* Ensure modal content text is themed */
     }
 
     .modal-header, .modal-footer {
       border-color: #444; /* Dark mode border */
+      transition: border-color 0.3s;
     }
 
     .light-mode .modal-header, .light-mode .modal-footer {
@@ -160,24 +280,33 @@
       filter: invert(0); /* Ensure close button is visible in light mode */
     }
 
-    /* Override Bootstrap's specific text colors within modal for theme adherence */
-    .modal-content .text-danger,
-    .modal-content .text-info,
-    .modal-content .text-success,
-    .modal-content .text-warning { /* Added text-warning here */
-      color: var(--text-dark) !important; /* Override Bootstrap's fixed color for dark mode */
+    /* Override Bootstrap's alert and specific text utility classes for theme adherence */
+    .alert {
+      border: 1px solid transparent; /* Remove default Bootstrap border */
+      transition: background-color 0.3s, color 0.3s;
+      color: var(--text-dark) !important; /* Default text color for alerts in dark mode */
+    }
+    .light-mode .alert {
+      color: var(--text-light) !important; /* Default text color for alerts in light mode */
     }
 
-    .light-mode .modal-content .text-danger,
-    .light-mode .modal-content .text-info,
-    .light-content .modal-content .text-success,
-    .light-content .modal-content .text-warning { /* Added text-warning here */
-      color: var(--text-light) !important; /* Override Bootstrap's fixed color for light mode */
+    .alert.alert-success {
+      background-color: var(--alert-success-bg);
+    }
+    .alert.alert-danger {
+      background-color: var(--alert-danger-bg);
+    }
+    .alert.alert-warning {
+      background-color: var(--alert-warning-bg);
+    }
+    .alert.alert-info {
+      background-color: var(--alert-info-bg);
     }
 
     /* Ensure specific elements in the chat response box also follow the theme */
     #chatResponse div, #chatResponse strong {
       color: var(--text-dark); /* Default for dark mode */
+      transition: color 0.3s;
     }
     .light-mode #chatResponse div, .light-mode #chatResponse strong {
       color: var(--text-light); /* For light mode */
@@ -186,7 +315,13 @@
     /* Added for wallet selection */
     .wallet-selection-group label {
         margin-right: 15px;
+        color: var(--text-dark); /* Ensure labels are themed */
+        transition: color 0.3s;
     }
+    .light-mode .wallet-selection-group label {
+        color: var(--text-light); /* Ensure labels are themed */
+    }
+
 
     /* Custom styles for MetaMask button based on image */
     #connectMetaMaskBtn {
@@ -207,19 +342,6 @@
         box-shadow: 0 6px 12px rgba(0, 123, 255, 0.3);
     }
 
-    /* Removed .connected styles as the button text will no longer change */
-    /*
-    #connectWalletBtn.connected {
-        background-color: #28a745;
-        border-color: #28a745;
-    }
-    #connectWalletBtn.connected:hover {
-        background-color: #28a745;
-        border-color: #28a745;
-        box-shadow: 0 2px 4px rgba(0,123,255,0.2);
-    }
-    */
-
     /* Ensure the button is always clickable */
     #connectWalletBtn {
         pointer-events: auto !important;
@@ -231,7 +353,12 @@
         align-items: center;
         text-align: center;
         margin: 20px 0;
-        color: #777; /* Gray for "OR" */
+        color: var(--text-dark); /* Default for dark mode */
+        transition: color 0.3s;
+    }
+
+    .light-mode .or-separator {
+      color: var(--text-light);
     }
 
     .or-separator::before,
@@ -239,6 +366,7 @@
         content: '';
         flex: 1;
         border-bottom: 1px solid #444; /* Line color for dark mode */
+        transition: border-color 0.3s;
     }
 
     .light-mode .or-separator::before,
@@ -264,6 +392,9 @@
 </head>
 
 <body class="dark-mode">
+  <!-- This div will act as the main page background -->
+  <div class="page-background"></div>
+
   <div class="header-buttons">
     <button id="connectWalletBtn" class="btn btn-sm btn-outline-light">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
@@ -280,7 +411,9 @@
     <div class="card animate__animated animate__fadeInUp">
       <h4>🧠 Explain Solidity Contract</h4>
       <form id="formContract">
-        <textarea id="contract" rows="10" placeholder="Paste your Solidity code..." required></textarea>
+        <div class="mb-3">
+          <textarea id="contract" class="form-control" rows="10" placeholder="Paste your Solidity code..." required></textarea>
+        </div>
         <div class="text-end mt-2">
           <button type="submit" class="btn btn-success">
             Explain 🔍 <span class="spinner-border spinner-border-sm"></span>
@@ -296,7 +429,9 @@
     <div class="card animate__animated animate__fadeInUp">
       <h4>🤖 EVM Chatbot</h4>
       <form id="chatForm">
-        <textarea id="chat_input" rows="3" placeholder="Say ‘transfer 0.1 ETH to 0x...’" required></textarea>
+        <div class="mb-3">
+          <textarea id="chat_input" class="form-control" rows="3" placeholder="Say ‘transfer 0.1 ETH to 0x...’" required></textarea>
+        </div>
         <div class="text-end mt-2">
           <button type="submit" class="btn btn-info">
             Send <span class="spinner-border spinner-border-sm"></span>
@@ -309,8 +444,12 @@
 
     <div class="card animate__animated animate__fadeInUp">
       <h4>📦 Deploy Contract</h4>
-      <textarea id="deployAbi" rows="4" placeholder="Enter ABI as JSON..."></textarea>
-      <textarea id="deployBytecode" rows="4" placeholder="Enter Bytecode..."></textarea>
+      <div class="mb-3">
+        <textarea id="deployAbi" class="form-control" rows="4" placeholder="Enter ABI as JSON..."></textarea>
+      </div>
+      <div class="mb-3">
+        <textarea id="deployBytecode" class="form-control" rows="4" placeholder="Enter Bytecode..."></textarea>
+      </div>
       <div class="text-end mt-2">
         <button class="btn btn-warning" onclick="deployContract()">
           Deploy <span class="spinner-border spinner-border-sm" id="deploySpinner"></span>
@@ -322,10 +461,19 @@
 
     <div class="card animate__animated animate__fadeInUp">
       <h4>🔧 Interact with Contract</h4>
-      <textarea id="interactAbi" rows="4" placeholder="Enter ABI as JSON..."></textarea>
-      <input id="contractAddress" placeholder="Contract Address" />
-      <input id="methodName" placeholder="Method Name" />
-      <input id="methodArgs" placeholder="Arguments (comma-separated)" />
+      <div class="mb-3">
+        <textarea id="interactAbi" class="form-control" rows="4" placeholder="Enter ABI as JSON..."></textarea>
+      </div>
+      <div class="mb-3">
+        <input id="contractAddress" class="form-control" placeholder="Contract Address" />
+      </div>
+      <div class="mb-3">
+        <input id="methodName" class="form-control" placeholder="Method Name" />
+      </div>
+      <div class="mb-3">
+        <input id="methodArgs" class="form-control" placeholder="Arguments (comma-separated)" />
+        <small class="form-text text-muted">For strings, use quotes: "hello", "world". For numbers, just the number: 123. For booleans: true, false.</small>
+      </div>
       <div class="text-end mt-2">
         <button class="btn btn-primary" onclick="interact()">
           Call <span class="spinner-border spinner-border-sm" id="interactSpinner"></span>
@@ -334,6 +482,42 @@
       </div>
       <div id="interactResult" class="output-box mt-2"></div>
     </div>
+
+    <!-- NEW: Contract Verification Section -->
+    <div class="card animate__animated animate__fadeInUp">
+      <h4>✅ Verify Smart Contract Source Code</h4>
+      <div class="mb-3">
+        <input id="verifyContractAddressInput" class="form-control" placeholder="Contract Address (0x...)" />
+      </div>
+      <div class="mb-3">
+        <textarea id="verifySourceCodeInput" class="form-control" rows="10" placeholder="Paste your Solidity source code here..."></textarea>
+      </div>
+      <div class="mb-3">
+        <input id="verifyContractNameInput" class="form-control" placeholder="Contract Name (e.g., MyContract)" />
+      </div>
+      <div class="mb-3">
+        <input id="verifyCompilerVersionInput" class="form-control" placeholder="Compiler Version (e.g., v0.8.17+commit.8df45f5f)" />
+        <small class="form-text text-muted">Must match Etherscan's format. Check their docs for exact versions.</small>
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="verifyOptimizationUsed">
+        <label class="form-check-label" for="verifyOptimizationUsed">
+          Optimization Used
+        </label>
+      </div>
+      <div class="mb-3" id="verifyRunsGroup" style="display:none;">
+        <label for="verifyRunsInput" class="form-label">Runs (if optimization used)</label>
+        <input type="number" class="form-control" id="verifyRunsInput" value="200" min="1">
+      </div>
+      <div class="text-end mt-2">
+        <button class="btn btn-success" id="verifyContractBtn">
+          Verify <span class="spinner-border spinner-border-sm" id="verifySpinner"></span>
+        </button>
+        <div id="verifyLoader" class="loader-text">📤 Submitting for verification...</div>
+      </div>
+      <div id="verifyOutput" class="output-box mt-2" style="display:none;"></div>
+    </div>
+    <!-- END NEW: Contract Verification Section -->
 
     <div class="card animate__animated animate__fadeInUp">
       <h4>🌐 BlockDAG Visualization</h4>
@@ -349,13 +533,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <p class="text-danger">
-            <strong>Warning:</strong> For demonstration purposes, the private key input
-            option sends your private key to the backend. In a real
-            application, private keys should NEVER leave the client-side (e.g.,
-            using MetaMask). Use with caution and only with test accounts.
-            MetaMask connection is preferred and more more secure.
-          </p>
+          <!-- Removed the warning section as requested -->
 
           <button type="button" class="btn btn-info" id="connectMetaMaskBtn">Connect with MetaMask</button>
 
@@ -413,8 +591,31 @@
     function applyTheme(mode) {
       document.body.classList.toggle('dark-mode', mode === 'dark');
       document.body.classList.toggle('light-mode', mode === 'light');
+
+      // Update the page-background div's class
+      const pageBackground = document.querySelector('.page-background');
+      if (pageBackground) {
+          pageBackground.classList.toggle('dark-mode', mode === 'dark');
+          pageBackground.classList.toggle('light-mode', mode === 'light');
+      }
+
       document.getElementById('themeToggle').innerText = mode === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
       localStorage.setItem('theme', mode);
+      console.log(`Applying theme: ${mode}. Body classes: ${document.body.classList}`); // Debugging log
+      const computedHtmlBg = window.getComputedStyle(document.documentElement).backgroundColor;
+      const computedBodyBg = window.getComputedStyle(document.body).backgroundColor;
+      const computedBodyColor = window.getComputedStyle(document.body).color;
+      const computedPageBgColor = pageBackground ? window.getComputedStyle(pageBackground).backgroundColor : 'N/A';
+      console.log(`Computed HTML background-color: ${computedHtmlBg}`);
+      console.log(`Computed Body background-color: ${computedBodyBg}, color: ${computedBodyColor}`);
+      console.log(`Computed Page Background background-color: ${computedPageBgColor}`);
+
+      const h1Element = document.querySelector('h1');
+      if (h1Element) {
+          const computedH1Color = window.getComputedStyle(h1Element).color;
+          console.log(`Computed H1 color: ${computedH1Color}`);
+      }
+
 
       const connectWalletBtn = document.getElementById('connectWalletBtn');
       connectWalletBtn.classList.remove('btn-outline-light', 'btn-outline-dark');
@@ -423,7 +624,6 @@
       } else {
         connectWalletBtn.classList.add('btn-outline-light');
       }
-      // No longer calling updateConnectWalletButtonStatus here as it only depends on connection state, not theme
     }
 
     document.getElementById('themeToggle').onclick = () => {
@@ -451,7 +651,6 @@
     const confirmConnectBtn = document.getElementById('confirmConnectBtn');
     const connectWalletSpinner = document.getElementById('connectWalletSpinner');
     const walletConnectMessage = document.getElementById('walletConnectMessage');
-    // Removed walletStatusSpan as it's no longer needed in the header
 
     connectWalletButtonHeader.onclick = () => { // Event listener for the header button
       console.log("Connect Wallet button clicked! Disabled state:", connectWalletButtonHeader.disabled); // Added for debugging
@@ -469,13 +668,13 @@
           walletConnectMessage.innerHTML = '';
         } catch (error) {
           walletAddressInput.value = 'Invalid Key';
-          walletConnectMessage.innerHTML = '<div class="text-danger">Invalid private key format.</div>';
+          walletConnectMessage.innerHTML = '<div class="alert alert-danger mt-2">Invalid private key format.</div>';
         }
       } else {
         walletAddressInput.value = '';
         walletConnectMessage.innerHTML = '';
         if (privateKey.length > 0) {
-            walletConnectMessage.innerHTML = '<div class="text-warning">Private key should start with "0x" and be 66 characters long.</div>';
+            walletConnectMessage.innerHTML = '<div class="alert alert-warning mt-2">Private key should start with "0x" and be 66 characters long.</div>';
         }
       }
     };
@@ -485,17 +684,17 @@
       const nodeUrl = nodeUrlInput.value.trim(); // Get the node URL
 
       if (!privateKey) {
-        walletConnectMessage.innerHTML = '<div class="text-danger">Please enter your private key.</div>';
+        walletConnectMessage.innerHTML = '<div class="alert alert-danger mt-2">Please enter your private key.</div>';
         return;
       }
       if (!nodeUrl) {
-        walletConnectMessage.innerHTML = '<div class="text-danger">Please enter your EVM Node URL.</div>';
+        walletConnectMessage.innerHTML = '<div class="alert alert-danger mt-2">Please enter your EVM Node URL.</div>';
         return;
       }
 
       connectWalletSpinner.style.display = 'inline-block';
       confirmConnectBtn.disabled = true;
-      walletConnectMessage.innerHTML = '<div class="text-info">Connecting backend wallet...</div>';
+      walletConnectMessage.innerHTML = '<div class="alert alert-info mt-2">Connecting backend wallet...</div>';
 
       try {
         const res = await fetch('/set_wallet_config', {
@@ -507,30 +706,27 @@
 
         if (data.status === 'success') {
           backendWalletConnectedAddress = data.address; // Store for later use
-          walletConnectMessage.innerHTML = `<div class="text-success">Backend Wallet Connected: ${data.address}</div>`;
+          walletConnectMessage.innerHTML = `<div class="alert alert-success mt-2">Backend Wallet Connected: ${data.address}</div>`;
           // Save credentials to localStorage on successful connection
           localStorage.setItem('backendPrivateKey', privateKey);
           localStorage.setItem('backendNodeUrl', nodeUrl);
           updateWalletRadioButtons(); // Update UI state after connection
-          // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
           setTimeout(() => walletConnectModal.hide(), 1500);
         } else {
           backendWalletConnectedAddress = null; // Clear if connection fails
-          walletConnectMessage.innerHTML = `<div class="text-danger">Error: ${data.message}</div>`;
+          walletConnectMessage.innerHTML = `<div class="alert alert-danger mt-2">Error: ${data.message}</div>`;
           // Clear localStorage if connection fails
           localStorage.removeItem('backendPrivateKey');
           localStorage.removeItem('backendNodeUrl');
           updateWalletRadioButtons(); // Update UI state after failure
-          // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
         }
       } catch (error) {
         backendWalletConnectedAddress = null; // Clear on network error
-        walletConnectMessage.innerHTML = `<div class="text-danger">Network error: ${error.message}</div>`;
+        walletConnectMessage.innerHTML = `<div class="alert alert-danger mt-2">Network error: ${error.message}</div>`;
         // Clear localStorage on network error
         localStorage.removeItem('backendPrivateKey');
         localStorage.removeItem('backendNodeUrl');
         updateWalletRadioButtons(); // Update UI state after network error
-        // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
       } finally {
         connectWalletSpinner.style.display = 'none';
         confirmConnectBtn.disabled = false;
@@ -566,7 +762,6 @@
         web3MetaMask = null; // Clear web3MetaMask instance
       }
       updateWalletRadioButtons(); // Always update UI state after MetaMask internal state changes
-      // updateConnectWalletButtonStatus(); // No longer changing header button text based on connection
     };
 
     // Function to initiate MetaMask connection (on button click)
@@ -687,14 +882,14 @@
             const data = await res.json();
             if (data.status === 'success') {
                 console.log("Backend wallet disconnected via API.");
-                walletConnectMessage.innerHTML = '<div class="text-success">Backend wallet disconnected.</div>';
+                walletConnectMessage.innerHTML = '<div class="alert alert-success mt-2">Backend wallet disconnected.</div>';
             } else {
                 console.error("Error clearing backend wallet via API:", data.message);
-                walletConnectMessage.innerHTML = `<div class="text-danger">Error disconnecting backend: ${data.message}</div>`;
+                walletConnectMessage.innerHTML = `<div class="alert alert-danger mt-2">Error disconnecting backend: ${data.message}</div>`;
             }
         } catch (error) {
             console.error("Network error clearing backend wallet:", error);
-            walletConnectMessage.innerHTML = `<div class="text-danger">Network error disconnecting backend: ${error.message}</div>`;
+            walletConnectMessage.innerHTML = `<div class="alert alert-danger mt-2">Network error disconnecting backend: ${error.message}</div>`;
         }
 
         backendWalletConnectedAddress = null;
@@ -967,7 +1162,7 @@
       const resultBox = document.getElementById('interactResult');
       spinner.style.display = 'inline-block';
       loader.style.display = 'block';
-      resultBox.innerText = '';
+      resultBox.innerText = ''; // Clear previous output
 
       const abiString = document.getElementById('interactAbi').value.trim();
       const contract_address = document.getElementById('contractAddress').value.trim();
@@ -998,7 +1193,8 @@
       if (argsString) {
           try {
               args = JSON.parse(`[${argsString}]`);
-          } catch (e) {
+          }
+          catch (e) {
               args = argsString.split(',').map(arg => arg.trim());
               args = args.map(arg => {
                   if (!isNaN(parseFloat(arg)) && isFinite(arg)) {
@@ -1026,10 +1222,15 @@
                     from: metaMaskConnectedAccount,
                     gas: gasEstimate + 50000 // Add a buffer
                 });
-                result = `MetaMask Transaction Sent: ${receipt.transactionHash}. Status: ${receipt.status === true ? 'Success' : 'Failed'}`;
+                result = `<div class="alert alert-success mt-2">MetaMask Transaction Sent: <code>${receipt.transactionHash}</code>. Status: ${receipt.status === true ? 'Success' : 'Failed'}</div>`;
             } else {
                 // Read-only method (call)
-                result = await contract.methods[method](...args).call();
+                const callResult = await contract.methods[method](...args).call();
+                if (typeof callResult === 'object' && callResult !== null) {
+                    result = `<div class="alert alert-info mt-2"><pre><code>${JSON.stringify(callResult, null, 2)}</code></pre></div>`;
+                } else {
+                    result = `<div class="alert alert-info mt-2">Result: <code>${callResult}</code></div>`;
+                }
             }
         } else {
             // Check if backend wallet is actually connected before attempting backend interaction
@@ -1047,24 +1248,29 @@
             });
             const data = await res.json();
             if (data.hasOwnProperty('result')) {
-                result = data.result;
+                if (isTransaction) {
+                    result = `<div class="alert alert-success mt-2">${data.result}</div>`;
+                } else {
+                    if (typeof data.result === 'object' && data.result !== null) {
+                        result = `<div class="alert alert-info mt-2"><pre><code>${JSON.stringify(data.result, null, 2)}</code></pre></div>`;
+                    } else {
+                        result = `<div class="alert alert-info mt-2">Result: <code>${data.result}</code></div>`;
+                    }
+                }
             } else {
-                result = '❌ ' + (data.error || 'Unknown error during backend interaction.');
+                result = `<div class="alert alert-danger mt-2">❌ ${data.error || 'Unknown error during backend interaction.'}</div>`;
             }
         }
 
         // Display result
-        if (typeof result === 'object' && result !== null) {
-            resultBox.innerText = JSON.stringify(result, null, 2);
-        } else {
-            resultBox.innerText = result;
-        }
+        resultBox.innerHTML = result;
 
       } catch (e) {
-        resultBox.innerText = '❌ Error calling contract method: ' + e.message;
+        resultBox.innerHTML = `<div class="alert alert-danger mt-2">❌ Error calling contract method: ${e.message}</div>`;
+      } finally {
+        spinner.style.display = 'none';
+        loader.style.display = 'none';
       }
-      spinner.style.display = 'none';
-      loader.style.display = 'none';
     }
 
     // --- BlockDAG Visualization Logic ---
@@ -1119,7 +1325,7 @@
         const storedNodeUrl = localStorage.getItem('backendNodeUrl');
 
         if (storedPrivateKey && storedNodeUrl) {
-            walletConnectMessage.innerHTML = '<div class="text-info">Attempting to reconnect backend wallet automatically...</div>';
+            walletConnectMessage.innerHTML = '<div class="alert alert-info mt-2">Attempting to reconnect backend wallet automatically...</div>';
             try {
                 const res = await fetch('/set_wallet_config', {
                     method: 'POST',
@@ -1131,10 +1337,10 @@
                 if (data.status === 'success') {
                     backendWalletConnectedAddress = data.address;
                     console.log("Backend wallet reconnected automatically.");
-                    walletConnectMessage.innerHTML = '<div class="text-success">Backend wallet reconnected automatically.</div>';
+                    walletConnectMessage.innerHTML = '<div class="alert alert-success mt-2">Backend wallet reconnected automatically.</div>';
                 } else {
                     console.error("Auto-reconnection failed:", data.message);
-                    walletConnectMessage.innerHTML = `<div class="text-danger">Auto-reconnection failed: ${data.message}</div>`;
+                    walletConnectMessage.innerHTML = `<div class="alert alert-danger mt-2">Auto-reconnection failed: ${data.message}</div>`;
                     // Clear stored credentials if auto-reconnect fails
                     localStorage.removeItem('backendPrivateKey');
                     localStorage.removeItem('backendNodeUrl');
@@ -1142,7 +1348,7 @@
                 }
             } catch (error) {
                 console.error("Network error during auto-reconnection:", error);
-                walletConnectMessage.innerHTML = `<div class="text-danger">Network error during auto-reconnection: ${error.message}</div>`;
+                walletConnectMessage.innerHTML = `<div class="alert alert-danger mt-2">Network error during auto-reconnection: ${error.message}</div>`;
                 // Clear stored credentials on network error
                 localStorage.removeItem('backendPrivateKey');
                 localStorage.removeItem('backendNodeUrl');
@@ -1150,6 +1356,61 @@
             }
         }
     }
+
+    // NEW: Contract Verification Functions
+    async function verifyContract() {
+      const contractAddress = document.getElementById('verifyContractAddressInput').value.trim();
+      const sourceCode = document.getElementById('verifySourceCodeInput').value.trim();
+      const contractName = document.getElementById('verifyContractNameInput').value.trim();
+      const compilerVersion = document.getElementById('verifyCompilerVersionInput').value.trim();
+      const optimizationUsed = document.getElementById('verifyOptimizationUsed').checked;
+      const runs = parseInt(document.getElementById('verifyRunsInput').value, 10);
+
+      const verifySpinner = document.getElementById('verifySpinner');
+      const verifyLoader = document.getElementById('verifyLoader');
+      const verifyOutput = document.getElementById('verifyOutput');
+
+      if (!contractAddress || !sourceCode || !contractName || !compilerVersion) {
+        verifyOutput.innerHTML = '<div class="alert alert-warning mt-2">Please fill in all required fields: Contract Address, Source Code, Contract Name, and Compiler Version.</div>';
+        verifyOutput.style.display = 'block';
+        return;
+      }
+
+      verifySpinner.style.display = 'inline-block';
+      verifyLoader.style.display = 'block';
+      verifyOutput.style.display = 'none'; // Hide previous output
+
+      try {
+        const response = await fetch('/verify_contract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contract_address: contractAddress,
+            source_code: sourceCode,
+            contract_name: contractName,
+            compiler_version: compilerVersion,
+            optimization_used: optimizationUsed,
+            runs: runs
+          })
+        });
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          verifyOutput.innerHTML = `<div class="alert alert-success mt-2">Verification Status: ${data.message}</div>`;
+        } else if (data.status === 'error') {
+          verifyOutput.innerHTML = `<div class="alert alert-danger mt-2">Verification Error: ${data.message}</div>`;
+        }
+        verifyOutput.style.display = 'block';
+      } catch (error) {
+        console.error('Verification Error:', error);
+        verifyOutput.innerHTML = `<div class="alert alert-danger mt-2">Network error during verification: ${error.message}</div>`;
+        verifyOutput.style.display = 'block';
+      } finally {
+        verifySpinner.style.display = 'none';
+        verifyLoader.style.display = 'none';
+      }
+    }
+
 
     window.onload = async () => { // Make onload async
         loadBlockDAG();
@@ -1182,8 +1443,18 @@
         // Then initialize MetaMask state
         await initMetaMaskState();
 
-        // No need to call updateConnectWalletButtonStatus here anymore as it always shows "Connect Wallet"
-        // and its appearance is set by default
+        // NEW: Event listener for optimizationUsed checkbox (moved here for DOMContentLoaded)
+        document.getElementById('verifyOptimizationUsed').addEventListener('change', function() {
+            const verifyRunsGroup = document.getElementById('verifyRunsGroup');
+            if (this.checked) {
+                verifyRunsGroup.style.display = 'block';
+            } else {
+                verifyRunsGroup.style.display = 'none';
+            }
+        });
+
+        // NEW: Event listener for verifyContractBtn (moved here for DOMContentLoaded)
+        document.getElementById('verifyContractBtn').addEventListener('click', verifyContract);
     };
 
   </script>
